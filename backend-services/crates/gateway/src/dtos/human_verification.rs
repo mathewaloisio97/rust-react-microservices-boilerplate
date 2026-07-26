@@ -1,7 +1,7 @@
 //! Data Transfer Objects (DTOs) for the human verification subsystem.
 //!
 //! Defines the validation contracts and public-facing JSON schemas used to serve
-//! bot protection challenges and process interactive telemetry submissions.
+//! bot protection challenges and process verification tokens from external cloud providers.
 
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
@@ -16,13 +16,14 @@ pub struct ChallengeQuery {
     pub edition_id: Option<String>,
 }
 
-/// The telemetry and verification data submitted by the client interface for validation.
+/// The verification token data submitted by the client interface for validation.
 #[derive(Serialize, Deserialize, ToSchema, Debug)]
 pub struct ClientVerifyPayload {
     /// The unique identifier of the active bot protection provider handling the evaluation.
-    #[schema(example = "arrow_alignment")]
+    #[schema(example = "turnstile")]
     pub provider_id: String,
 
-    /// The raw, structured telemetry data and challenge contextual metadata.
-    pub payload: serde_json::Value,
+    /// The raw token string or structured payload returned by the provider's client-side widget.
+    #[schema(example = "0.XXXXX...")]
+    pub client_payload: String,
 }

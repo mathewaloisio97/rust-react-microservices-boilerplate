@@ -4,6 +4,7 @@
 //! creating our shared application state, configuring interactive API
 //! documentation (Swagger UI), and starting the network listener.
 
+use axum::http::{header, HeaderValue, Method};
 use axum::Router;
 use cleard_constants::security::DEFAULT_HV_SECRET;
 use cleard_contracts::access_tokens::v1::access_tokens_service_client::AccessTokensServiceClient;
@@ -15,6 +16,7 @@ use cleard_gateway::{dtos, handlers, routes, state::AppState};
 use std::env;
 use std::net::SocketAddr;
 use tonic::transport::Channel;
+use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
 use utoipa::{
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
@@ -148,6 +150,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         crypto_engine,
     };
 
+    // Configure CORS restrictions based on the compilation profile.
+    let cors_base = CorsLayer::new()
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_headers([
+            header::CONTENT_TYPE,
+            header::AUTHORIZATION,
+            "x-captcha-voucher".parse().unwrap(),
+        ]);
+
+    let cors = if cfg!(feature = "local-dev") {
+        tracing::warn!("CORS: Running in local-dev mode. Allowing all origins.");
+        cors_base.allow_origin(Any)
+    } else {
+        let origins_str = env::var("ALLOWED_CORS_ORIGINS")
+            .expect("FATAL: ALLOWED_CORS_ORIGINS environment variable must be set in production for CORS constraints.");
+
+        let origins: Vec<HeaderValue> = origins_str
+            .split(',')
+            .filter(|s| !s.trim().is_empty())
+            .map(|s| {
+                let clean_str = s.trim();
+                clean_str.parse::<HeaderValue>().unwrap_or_else(|_| {
+                    panic!(
+                        "FATAL: Invalid origin format in ALLOWED_CORS_ORIGINS: {}",
+                        clean_str
+                    )
+                })
+            })
+            .collect();
+
+        tracing::info!("CORS: Bound to exact origins: [{}]", origins_str);
+        cors_base.allow_origin(origins)
+    };
+
     let openapi = ApiDoc::openapi();
 
     // Combine individual endpoint blocks and our interactive Swagger documentation pages.
@@ -156,7 +192,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .merge(routes::identity::build_router(state.clone()))
         .merge(routes::auth::build_router(state.clone()))
         .merge(routes::human_verification::build_router(state.clone()))
-        .merge(routes::email::build_router(state.clone()));
+        .merge(routes::email::build_router(state.clone()))
+        .layer(cors);
 
     // Open network port listener and begin serving client traffic.
     let addr: SocketAddr = server_addr.parse()?;

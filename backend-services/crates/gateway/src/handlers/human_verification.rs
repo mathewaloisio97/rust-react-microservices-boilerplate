@@ -87,12 +87,9 @@ pub async fn verify(
     State(mut state): State<AppState>,
     Json(payload): Json<ClientVerifyPayload>,
 ) -> impl IntoResponse {
-    // Serialize the generic JSON payload back into a string to send over gRPC.
-    let payload_json_str = serde_json::to_string(&payload.payload).unwrap_or_default();
-
     let req = tonic::Request::new(VerifyRequest {
         provider_id: payload.provider_id,
-        client_payload: payload_json_str,
+        client_payload: payload.client_payload,
     });
 
     match state.human_verification_client.verify(req).await {

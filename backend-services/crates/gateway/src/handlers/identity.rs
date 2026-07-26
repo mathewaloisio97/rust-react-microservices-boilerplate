@@ -86,7 +86,8 @@ pub async fn local_register(
 /// Authenticates a user using traditional local email and password credentials.
 ///
 /// Verifies credentials against the Identity microservice. Upon successful validation,
-/// requests an active session token from the Auth microservice.
+/// requests an active session token from the Auth microservice. This endpoint requires
+/// an active proof-of-humanity header (`x-captcha-voucher`) evaluated by upstream middleware.
 ///
 /// # Arguments
 ///
@@ -96,15 +97,19 @@ pub async fn local_register(
 /// # Returns
 ///
 /// An Axum response containing `200 OK` with an `AuthResponseDto` session token, `400 Bad Request` on
-/// blank inputs, or `401 Unauthorized` if authentication fails.
+/// blank inputs, `401 Unauthorized` if authentication fails, or `403 Forbidden` if the captcha voucher is missing.
 #[utoipa::path(
     post,
     path = "/api/v1/login",
     request_body = LocalLoginPayload,
+    params(
+        ("x-captcha-voucher" = String, Header, description = "Cryptographic proof-of-humanity voucher")
+    ),
     responses(
         (status = 200, description = "Successfully authenticated", body = AuthResponseDto),
         (status = 400, description = "Invalid payload (e.g., missing fields)"),
-        (status = 401, description = "Invalid credentials")
+        (status = 401, description = "Invalid credentials"),
+        (status = 403, description = "Missing or invalid captcha voucher")
     )
 )]
 #[tracing::instrument(skip(state, payload))]
@@ -157,7 +162,8 @@ pub async fn local_login(
 /// Authenticates or provisions a user via an external OAuth provider (e.g., Google, Microsoft).
 ///
 /// Validates the external identity token via the Identity service, and upon success,
-/// issues an active session token via the Auth microservice.
+/// issues an active session token via the Auth microservice. This endpoint requires
+/// an active proof-of-humanity header (`x-captcha-voucher`) evaluated by upstream middleware.
 ///
 /// # Arguments
 ///
@@ -167,15 +173,19 @@ pub async fn local_login(
 /// # Returns
 ///
 /// An Axum response containing `200 OK` with an `AuthResponseDto` session token, `400 Bad Request` on
-/// blank fields, or `401 Unauthorized` if token validation fails.
+/// blank fields, `401 Unauthorized` if token validation fails, or `403 Forbidden` if the captcha voucher is missing.
 #[utoipa::path(
     post,
     path = "/api/v1/oauth",
     request_body = OAuthLoginPayload,
+    params(
+        ("x-captcha-voucher" = String, Header, description = "Cryptographic proof-of-humanity voucher")
+    ),
     responses(
         (status = 200, description = "Successfully authenticated via OAuth", body = AuthResponseDto),
         (status = 400, description = "Invalid payload (e.g., missing fields)"),
-        (status = 401, description = "Invalid OAuth identity")
+        (status = 401, description = "Invalid OAuth identity"),
+        (status = 403, description = "Missing or invalid captcha voucher")
     )
 )]
 #[tracing::instrument(skip(state, payload))]

@@ -17,18 +17,15 @@ use axum::{middleware, routing::post, Router};
 ///
 /// A fully composed Axum [`Router`] ready to be bound to a TCP listener.
 pub fn build_router(state: AppState) -> Router {
-    // Routes protected by human verification (e.g., CAPTCHA or minigame vouchers).
-    let captcha_protected = Router::new()
+    // Apply captcha protection globally to all identity entry points to mitigate
+    // automated credential stuffing and rapid account provisioning.
+    Router::new()
         .route("/api/v1/register", post(identity::local_register))
+        .route("/api/v1/login", post(identity::local_login))
+        .route("/api/v1/oauth", post(identity::oauth_login))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             captcha_middleware,
-        ));
-
-    // Standard unverified routes combined with captcha-protected routes under shared state.
-    Router::new()
-        .route("/api/v1/login", post(identity::local_login))
-        .route("/api/v1/oauth", post(identity::oauth_login))
-        .merge(captcha_protected)
+        ))
         .with_state(state)
 }

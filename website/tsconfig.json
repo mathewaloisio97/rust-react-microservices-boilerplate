@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "rootDir": ".",
+    "rootDir": "src",
     "outDir": "./dist",
 
     "module": "nodenext",
@@ -19,11 +19,11 @@
     "jsx": "react-jsx",
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
-    "noUncheckedSideEffectImports": true,
+    "noUncheckedSideEffectImports": false,
     "moduleDetection": "force",
     "skipLibCheck": true
   },
-  "include": ["src", "eslint.config.ts"],
+  "include": ["src"],
   "exclude": [
     "node_modules",
     "dist"

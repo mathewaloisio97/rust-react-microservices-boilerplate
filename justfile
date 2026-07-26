@@ -20,6 +20,8 @@ check-rust mode="prod":
 # Install dependencies and build the React portal.
 check-frontend:
     cd website && pnpm install --frozen-lockfile
+    cd website && pnpm run format:check
+    cd website && pnpm run lint
     cd website && pnpm build
 
 # --- Developer Database & SQLx Utilities ---
