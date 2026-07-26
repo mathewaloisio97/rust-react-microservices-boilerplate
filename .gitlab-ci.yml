@@ -16,7 +16,7 @@ frontend-and-contracts:
     paths:
       - website/.pnpm-store
   before_script:
-    - apt-get update && apt-get install -y protobuf-compiler python3 curl
+    - apt-get update && apt-get install -y protobuf-compiler python3 python-is-python3 curl
     - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
     - npm install -g pnpm
     - pnpm config set store-dir .pnpm-store
@@ -30,7 +30,7 @@ frontend-and-contracts:
 # --- Rust Backend Services ---
 rust-backend:
   stage: validate
-  image: rust:1.80-bullseye
+  image: rust:latest
   cache:
     key:
       files:

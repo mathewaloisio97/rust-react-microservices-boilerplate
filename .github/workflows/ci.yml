@@ -1,6 +1,5 @@
 name: Cleard CI
 
-# Trigger on pushes and PRs to main.
 on:
   push:
     branches: [ "main" ]
@@ -8,13 +7,11 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
-# Cancel obsolete in-progress runs if the PR is updated.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # --- Contracts & React Web Portal ---
   frontend-and-contracts:
     name: Contracts & React Portal
     runs-on: ubuntu-latest
@@ -62,7 +59,6 @@ jobs:
       - name: Build React Frontend
         run: just check-frontend
 
-  # --- Rust Backend Services ---
   rust-backend:
     name: Rust Backend
     runs-on: ubuntu-latest
@@ -85,8 +81,6 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Run Rust pipeline
-        # ENFORCE OFFLINE MODE: Tells SQLx to read the committed .sqlx folder
-        # instead of attempting to connect to a live Postgres instance.
         env:
           SQLX_OFFLINE: true
         run: just check-rust
