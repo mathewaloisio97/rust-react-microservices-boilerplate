@@ -1,0 +1,22 @@
+[package]
+name = "cleard_human_verification"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+local-dev = []
+
+[dependencies]
+tokio = { workspace = true }
+tonic = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }
+reqwest = { workspace = true }
+
+cleard_constants = { path = "../constants" }
+cleard_contracts = { path = "../contracts" }
+cleard_human_verification_crypto = { path = "../human_verification_crypto" }

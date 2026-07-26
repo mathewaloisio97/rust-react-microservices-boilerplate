@@ -1,0 +1,4 @@
+[env]
+# Enforces CI/CD parity locally. 
+# cargo build/check will read from the committed .sqlx cache folders instead of requiring a live Postgres DB.
+SQLX_OFFLINE = "true"

@@ -1,0 +1,23 @@
+﻿# justfile (Contracts Pipeline)
+
+# Configure the execution shell for Windows environments.
+set windows-shell := ["cmd.exe", "/c"]
+
+# Automatically formats all .proto files according to your workspace .editorconfig rules.
+format:
+    python build_contracts.py --format
+
+# Validates that all .proto files strictly conform to the workspace .editorconfig rules.
+check-format:
+    python build_contracts.py --check-format
+
+# Generates the TypeScript interfaces.
+generate:
+    @echo Restoring frontend dependencies for ts-proto...
+    cd ../website && pnpm install --frozen-lockfile
+    @echo Compiling Protocol Buffers to TypeScript source...
+    python build_contracts.py
+
+# Compiles the frontend definitions.
+build: check-format generate
+    @echo Compilation complete. TypeScript interfaces ready for use in the portal.

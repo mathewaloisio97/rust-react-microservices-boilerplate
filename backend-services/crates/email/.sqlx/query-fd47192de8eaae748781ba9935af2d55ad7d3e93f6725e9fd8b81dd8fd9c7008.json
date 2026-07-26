@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO user_emails (user_id, current_email, is_verified, verification_type, verification_code, code_expires_at)\n            VALUES ($1, $2, FALSE, 'VERIFY_CURRENT', $3, $4)\n            ON CONFLICT (user_id) DO UPDATE SET\n                current_email = EXCLUDED.current_email,\n                is_verified = FALSE,\n                verification_type = 'VERIFY_CURRENT',\n                verification_code = EXCLUDED.verification_code,\n                code_expires_at = EXCLUDED.code_expires_at,\n                pending_new_email = NULL,\n                updated_at = NOW()\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fd47192de8eaae748781ba9935af2d55ad7d3e93f6725e9fd8b81dd8fd9c7008"
+}

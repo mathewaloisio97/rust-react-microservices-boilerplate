@@ -1,0 +1,43 @@
+# Top-level EditorConfig initialization file.
+# Enforces cross-platform text normalization and whitespace constraints.
+root = true
+
+# Global configuration baseline for all files across the workspace repository.
+[*]
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+charset = utf-8
+
+# Domain-specific overrides for structured serialization and configuration formats.
+[*.{json,yaml,yml}]
+indent_size = 2
+
+# Protocol Buffers (Protobuf) schema definitions.
+# Enforces Google style guidelines for API contract specifications.
+[*.proto]
+indent_style = space
+indent_size = 2
+
+# Markdown format overrides. Trailing whitespace is preserved to respect 
+# markdown-spec semantic line breaks (<br> tags).
+[*.md]
+trim_trailing_whitespace = false
+
+# Core C# and .NET Compiler Style Invariants.
+# Enforces system-level directive sorting and contextual type inference conventions.
+[*.cs]
+dotnet_sort_system_directives_first = true
+csharp_style_var_when_type_is_apparent = true
+
+# Rust Compiler and Toolchain Style Invariants.
+# Synchronizes the editor environment with upstream rustfmt max line constraints.
+[*.rs]
+max_line_length = 100
+
+# Critical Infrastructure Overrides. 
+# Explicitly forces raw literal horizontal tabs (\t) required by low-level automation engines.
+[output.txt, Makefile, justfile, Justfile]
+indent_style = tab

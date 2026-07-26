@@ -1,0 +1,32 @@
+﻿[workspace]
+resolver = "2"
+members = [
+    "crates/*"
+]
+
+[workspace.dependencies]
+time = { version = "0.3", features = ["macros", "formatting", "parsing", "serde"] }
+tokio = { version = "1", features = ["full"] }
+axum = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+utoipa = { version = "5", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "9", features = ["axum"] }
+tonic = "0.14"
+prost = "0.14"
+tonic-prost = "0.14"
+tonic-prost-build = "0.14"
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "time"] }
+uuid = { version = "1", features = ["v4", "v7"] }
+rand = { version = "0.10", features = ["sys_rng", "std"] }
+anyhow = "1"
+thiserror = "2"
+async-trait = "0.1"
+base64 = "0.22"
+sha2 = "0.11"
+jsonwebtoken = "10.4"
+rsa = "0.10.0-rc.17"
+pkcs8 = { version = "0.11", features = ["pem", "std"] }
+reqwest = { version = "0.13", features = ["json"] }

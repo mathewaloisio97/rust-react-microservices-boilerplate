@@ -1,0 +1,77 @@
+//! Authentication service binary executable entry point.
+//!
+//! Initializes the server infrastructure runtime environment, configures the underlying
+//! relational database connection pool, applies outstanding schema migrations, and binds
+//! the compiled gRPC transport layer to the network interface socket.
+
+use cleard_auth::amqp::AmqpEventPublisher;
+use cleard_auth::repository::PostgresTokenRepository;
+use cleard_auth::CleardAuth;
+use cleard_contracts::auth::v1::auth_service_server::AuthServiceServer;
+use sqlx::postgres::PgPoolOptions;
+use std::net::SocketAddr;
+use std::sync::Arc;
+use tonic::transport::Server;
+use tracing::{info, warn};
+
+/// Application entry point configuring and executing the async gRPC service runtime.
+///
+/// # Errors
+/// Returns an error box if initialization configuration reads, database connectivity,
+/// embedded migration execution, or socket binding constraints fail to resolve.
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize structural tracing logging to stdout.
+    tracing_subscriber::fmt::init();
+
+    // Pull database target URI from system environment variables or fallback to local baseline defaults.
+    let db_url = std::env::var("AUTH_DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://postgres@localhost:5432/cleard_auth".to_string());
+
+    // Pull AMQP target URI from system environment variables or fallback to local baseline defaults.
+    let amqp_url =
+        std::env::var("AUTH_AMQP_URL").unwrap_or_else(|_| "amqp://127.0.0.1:5672/%2f".to_string());
+
+    // Allocate an asynchronous connection pool managed by the SQLx runtime engine.
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&db_url)
+        .await?;
+
+    // Execute schema migrations embedded within the binary distribution context.
+    info!("Applying Auth Database Migrations...");
+    sqlx::migrate!("./migrations").run(&pool).await?;
+    info!("Auth DB Migrations Applied Successfully");
+
+    // AMQP event broker loop.
+    let mut retries = 5;
+    let event_publisher = loop {
+        match AmqpEventPublisher::new(&amqp_url).await {
+            Ok(b) => break Arc::new(b),
+            Err(e) => {
+                retries -= 1;
+                if retries == 0 {
+                    panic!("Failed to connect to RabbitMQ AMQP: {}", e);
+                }
+                warn!("Waiting for RabbitMQ to become available...");
+                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+            }
+        }
+    };
+
+    // Instanciate thread-safe abstract database access object layers.
+    let repo = Arc::new(PostgresTokenRepository::new(pool));
+    let service = CleardAuth::new(repo, event_publisher);
+
+    // Bind and resolve the listener interface address.
+    let addr: SocketAddr = "0.0.0.0:50052".parse().unwrap();
+    info!("Auth gRPC Service listening on {}", addr);
+
+    // Bootstrap and block the thread on the asynchronous Tonic gRPC server orchestrator.
+    Server::builder()
+        .add_service(AuthServiceServer::new(service))
+        .serve(addr)
+        .await?;
+
+    Ok(())
+}

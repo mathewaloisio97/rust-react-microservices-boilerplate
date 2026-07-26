@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT user_id, current_email, is_verified, pending_new_email, verification_code, verification_type, code_expires_at as \"code_expires_at: _\" FROM user_emails WHERE user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "current_email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_verified",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "pending_new_email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "verification_code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "verification_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "code_expires_at: _",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "f253632ba6437976e3f1cf003e137bb82e1d6bfba2a4f847af50f86bc6b91a1d"
+}

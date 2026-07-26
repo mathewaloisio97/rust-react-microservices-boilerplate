@@ -1,0 +1,62 @@
+# =========================
+# OS & IDE
+# =========================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.user
+
+# =========================
+# Rust (Backend)
+# =========================
+/backend-services/**/target/
+**/*.rs.bk
+
+# =========================
+# Python (Protobuf Pipeline)
+# =========================
+/contracts/.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# =========================
+# .NET / C# (Client APIs)
+# =========================
+/dot-net-apis/**/obj/
+/dot-net-apis/**/bin/
+# Explicitly track compiled managed Release DLLs for Unity for version matching
+!/dot-net-apis/**/bin/Release/netstandard2.1/*.dll
+
+# =========================
+# React / Node (Website)
+# =========================
+/website/node_modules/
+/website/dist/
+
+# =========================
+# Environment & Local Config
+# =========================
+.env
+.env.local
+
+# DO NOT ignore crate-level .env files (they only contain local dev sqlx URLs)
+!/backend-services/crates/**/.env
+
+# =========================
+# Ignore Generated .NET Files
+# =========================
+dot-net-apis/**/Generated/
+
+# =========================
+# Local Files
+# =========================
+*.local
+
+# =========================
+# Misc Files
+# =========================
+/CHANGELOG

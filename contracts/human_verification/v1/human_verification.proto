@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package human_verification.v1;
+
+/// Handles captcha and bot protection routines across multiple verification providers.
+service HumanVerificationService {
+  /// Asks the backend to generate a new verification challenge.
+  /// For standard cloud providers (Turnstile/reCAPTCHA), this may return an empty payload.
+  rpc GetChallenge(GetChallengeRequest) returns (GetChallengeResponse);
+  
+  /// Checks the user's submitted answer or token to see if they passed the challenge.
+  rpc Verify(VerifyRequest) returns (VerifyResponse);
+}
+
+message GetChallengeRequest {
+  /// The target verification provider identifier (e.g., 'turnstile', 'recaptcha', 'minigame').
+  string provider_id = 1;
+  /// Optional specifier for tracking specific challenge layouts, versions, or difficulty tiers.
+  string edition_id = 2;
+}
+
+message GetChallengeResponse {
+  /// A raw JSON string containing the payload the frontend needs to render the challenge widget.
+  string challenge_payload = 1;
+}
+
+message VerifyRequest {
+  /// The target verification provider identifier that processed the challenge response.
+  string provider_id = 1;
+  
+  /// The raw JSON string or token sent back by the client widget after completion.
+  string client_payload = 2;
+}
+
+message VerifyResponse {
+  /// True if the user successfully completed the challenge.
+  bool success = 1;
+  /// A cryptographic, time-limited voucher token proving verification success. Empty if verification fails.
+  string voucher = 2;
+}

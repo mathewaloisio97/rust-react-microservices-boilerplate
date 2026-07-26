@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package access_tokens.v1;
+
+// ============================================================================
+// Service: AccessTokensService
+// Description:
+//   Stateless token issuance authority that converts stateful session tokens
+//   into short-lived, cryptographically signed JSON Web Tokens (JWTs).
+// ============================================================================
+service AccessTokensService {
+  /// Validates a session token and issues a short-lived scoped JWT access token.
+  rpc IssueToken(IssueTokenRequest) returns (IssueTokenResponse);
+
+  /// Exposes the public cryptographic key for offline token signature verification.
+  rpc GetPublicKey(GetPublicKeyRequest) returns (GetPublicKeyResponse);
+}
+
+message IssueTokenRequest {
+  /// Opaque stateful session token used as the primary credential.
+  string session_token = 1;
+
+  /// Requested permission scopes or roles (e.g., ["chat:read", "chat:write"]).
+  repeated string roles = 2;
+
+  /// Requested token lifetime in seconds, bounded by server maximum policy.
+  uint32 ttl_seconds = 3;
+}
+
+message IssueTokenResponse {
+  /// Signed JWT access token containing embedded claims and roles.
+  string access_token = 1;
+
+  /// Unix epoch timestamp in seconds indicating token expiration.
+  uint64 expires_at = 2;
+}
+
+message GetPublicKeyRequest {}
+
+message GetPublicKeyResponse {
+  /// Public key in PEM format used for asymmetric signature verification.
+  string public_key_pem = 1;
+}

@@ -1,0 +1,23 @@
+﻿[package]
+name = "cleard_gateway"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+local-dev = []
+
+[dependencies]
+tonic = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+utoipa = { workspace = true }
+utoipa-swagger-ui = { workspace = true }
+
+cleard_constants = { path = "../constants" }
+cleard_contracts = { path = "../contracts" }
+cleard_human_verification_crypto = { path = "../human_verification_crypto" }

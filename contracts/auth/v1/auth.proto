@@ -1,0 +1,55 @@
+﻿syntax = "proto3";
+
+package auth.v1;
+
+// Central session management service. Handles token generation,
+// validation, and immediate server-side revocation.
+service AuthService {
+  // Validates a session token and returns the corresponding identity.
+  rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse);
+
+  // Issues a secure session token for a validated identity.
+  rpc CreateToken(CreateTokenRequest) returns (CreateTokenResponse);
+
+  // Revokes a session token to terminate access permanently.
+  rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse);
+}
+
+// Inbound token payload for validation.
+message AuthenticateRequest {
+  // The unique opaque session token string.
+  string token = 1;
+}
+
+// Result of the token validation check.
+message AuthenticateResponse {
+  // Returns true if the token is active, verified, and unrevoked.
+  bool valid = 1;
+
+  // Unique identifier (UUIDv7 string) of the associated identity. Empty if invalid is true.
+  string user_id = 2;
+}
+
+// Session generation parameters.
+message CreateTokenRequest {
+  // Target identity unique identifier (UUIDv7 string).
+  string user_id = 1;
+}
+
+// Output payload containing the new session identifier.
+message CreateTokenResponse {
+  // Generated opaque session token.
+  string token = 1;
+}
+
+// Target payload for session termination.
+message RevokeTokenRequest {
+  // The opaque session token string to invalidate.
+  string token = 1;
+}
+
+// Result of the explicit revocation request.
+message RevokeTokenResponse {
+  // Returns true if the session record was identified and updated to a revoked state.
+  bool success = 1;
+}

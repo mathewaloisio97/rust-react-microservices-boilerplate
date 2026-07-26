@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package email.v1;
+
+/// Manages email affiliations, verification lifecycles, and ownership transfers for accounts.
+service EmailService {
+  /// Retrieves the current and pending email states for a user.
+  rpc GetEmail(GetEmailRequest) returns (GetEmailResponse);
+  
+  /// Initiates or updates an email change request, staging it for verification.
+  rpc SetEmail(SetEmailRequest) returns (SetEmailResponse);
+  
+  /// Validates a verification code to finalize an email update.
+  rpc VerifyEmail(VerifyEmailRequest) returns (VerifyEmailResponse);
+}
+
+/// Request details to fetch a user's email state.
+message GetEmailRequest {
+  /// Unique identifier of the user account.
+  string user_id = 1;
+}
+
+/// Current and staged email data for the account.
+message GetEmailResponse {
+  /// The actively verified email address currently receiving notifications.
+  string current_email = 1;
+  
+  /// True if the current email address has completed ownership verification.
+  bool is_verified = 2;
+  
+  /// A staged email address awaiting verification before replacing the current email.
+  string pending_new_email = 3;
+  
+  /// The strategy used to validate ownership (e.g., OnetimeCode, MagicLink).
+  string verification_type = 4;
+}
+
+/// Request details to change or set a user's email.
+message SetEmailRequest {
+  /// Unique identifier of the user account.
+  string user_id = 1;
+  
+  /// The new email address targeted for association.
+  string new_email = 2;
+}
+
+/// Result of initiating an email change.
+message SetEmailResponse {
+  /// Internal tracking state of the change request (e.g., PendingVerification, Throttled).
+  string status = 1;
+}
+
+/// Submission details to complete verification.
+message VerifyEmailRequest {
+  /// Unique identifier of the user account.
+  string user_id = 1;
+  
+  /// The short-lived numeric or alphanumeric token sent to the pending email.
+  string code = 2;
+}
+
+/// The outcome of the verification attempt.
+message VerifyEmailResponse {
+  /// True if the code matched and the verification process succeeded.
+  bool success = 1;
+  
+  /// If the verification finalized a multi-step email change, this contains the new active email.
+  string email_updated_to = 2;
+}

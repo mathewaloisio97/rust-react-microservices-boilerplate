@@ -1,0 +1,49 @@
+stages:
+  - validate
+
+variables:
+  # Enable offline SQLx compilation
+  SQLX_OFFLINE: "true"
+
+# --- Contracts & React Web Portal ---
+frontend-and-contracts:
+  stage: validate
+  image: node:24-bullseye
+  cache:
+    key:
+      files:
+        - website/pnpm-lock.yaml
+    paths:
+      - website/.pnpm-store
+  before_script:
+    - apt-get update && apt-get install -y protobuf-compiler python3 curl
+    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+    - npm install -g pnpm
+    - pnpm config set store-dir .pnpm-store
+  script:
+    - just check-contracts
+    - just check-frontend
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# --- Rust Backend Services ---
+rust-backend:
+  stage: validate
+  image: rust:1.80-bullseye
+  cache:
+    key:
+      files:
+        - backend-services/Cargo.lock
+    paths:
+      - backend-services/target
+      - /usr/local/cargo/registry
+  before_script:
+    - apt-get update && apt-get install -y protobuf-compiler curl
+    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+    - rustup component add rustfmt clippy
+  script:
+    - just check-rust
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
