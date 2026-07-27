@@ -14,8 +14,8 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use your_app_contracts::human_verification::v1::{GetChallengeRequest, VerifyRequest};
 use serde_json::json;
+use your_app_contracts::human_verification::v1::{GetChallengeRequest, VerifyRequest};
 
 /// Requests a new bot-protection verification challenge payload from the backend gRPC engine.
 ///

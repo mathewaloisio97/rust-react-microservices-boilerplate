@@ -7,17 +7,17 @@ pub mod jwt;
 
 use crate::jwt::{Claims, JwtManager};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use sha2::{Digest, Sha256};
+use std::sync::Arc;
+use time::OffsetDateTime;
+use tonic::{transport::Channel, Request, Response, Status};
+use tracing::{error, info, instrument};
 use your_app_contracts::access_tokens::v1::access_tokens_service_server::AccessTokensService;
 use your_app_contracts::access_tokens::v1::{
     GetPublicKeyRequest, GetPublicKeyResponse, IssueTokenRequest, IssueTokenResponse,
 };
 use your_app_contracts::auth::v1::auth_service_client::AuthServiceClient;
 use your_app_contracts::auth::v1::AuthenticateRequest;
-use sha2::{Digest, Sha256};
-use std::sync::Arc;
-use time::OffsetDateTime;
-use tonic::{transport::Channel, Request, Response, Status};
-use tracing::{error, info, instrument};
 
 /// Implements the gRPC service responsible for validating sessions and issuing JWTs.
 pub struct YourAppAccessTokens {

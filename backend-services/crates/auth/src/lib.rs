@@ -13,17 +13,17 @@ pub mod repository;
 use crate::events::{EventPublisher, SessionRevokedEvent};
 use crate::repository::TokenRepository;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-use your_app_contracts::auth::v1::auth_service_server::AuthService;
-use your_app_contracts::auth::v1::{
-    AuthenticateRequest, AuthenticateResponse, CreateTokenRequest, CreateTokenResponse,
-    RevokeTokenRequest, RevokeTokenResponse,
-};
 use rand::RngExt;
 use sha2::{Digest, Sha256};
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use tracing::{error, info, instrument};
 use uuid::Uuid;
+use your_app_contracts::auth::v1::auth_service_server::AuthService;
+use your_app_contracts::auth::v1::{
+    AuthenticateRequest, AuthenticateResponse, CreateTokenRequest, CreateTokenResponse,
+    RevokeTokenRequest, RevokeTokenResponse,
+};
 
 /// Core service coordinate orchestrating the identity and session token lifecycle over gRPC.
 pub struct YourAppAuth {

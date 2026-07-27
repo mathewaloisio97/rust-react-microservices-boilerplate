@@ -15,15 +15,15 @@ use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
+use std::sync::Arc;
+use tonic::{Request, Response, Status};
+use tracing::{error, info, instrument};
+use uuid::Uuid;
 use your_app_contracts::identity::v1::identity_service_server::IdentityService;
 use your_app_contracts::identity::v1::{
     AuthResponse, LoginLocalRequest, OAuthLoginRequest, RegisterLocalRequest,
     UpdateLocalEmailRequest, UpdateLocalEmailResponse,
 };
-use std::sync::Arc;
-use tonic::{Request, Response, Status};
-use tracing::{error, info, instrument};
-use uuid::Uuid;
 
 /// Orchestrates user authentication and registration workflows.
 pub struct YourAppIdentity {

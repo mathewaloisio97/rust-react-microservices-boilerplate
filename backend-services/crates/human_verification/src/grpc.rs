@@ -3,14 +3,14 @@
 use crate::providers::{
     recaptcha::RecaptchaProvider, turnstile::TurnstileProvider, VerificationProvider,
 };
+use std::sync::Arc;
+use tonic::{Request, Response, Status};
+use tracing::{error, info};
 use your_app_contracts::human_verification::v1::human_verification_service_server::HumanVerificationService;
 use your_app_contracts::human_verification::v1::{
     GetChallengeRequest, GetChallengeResponse, VerifyRequest, VerifyResponse,
 };
 use your_app_human_verification_crypto::CryptoEngine;
-use std::sync::Arc;
-use tonic::{Request, Response, Status};
-use tracing::{error, info};
 
 pub struct VerificationGrpcServer {
     pub crypto: Arc<CryptoEngine>,

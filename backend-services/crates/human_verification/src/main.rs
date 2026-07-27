@@ -3,6 +3,11 @@
 //! Handles challenges and solution validations (e.g., reCAPTCHA, Turnstile)
 //! and issues signed cryptographic vouchers upon successful human verification.
 
+use std::env;
+use std::net::SocketAddr;
+use std::sync::Arc;
+use tonic::transport::Server;
+use tracing::{info, warn};
 use your_app_constants::security::DEFAULT_HV_SECRET;
 use your_app_contracts::human_verification::v1::human_verification_service_server::HumanVerificationServiceServer;
 use your_app_human_verification::config::VerificationConfig;
@@ -11,11 +16,6 @@ use your_app_human_verification::providers::{
     recaptcha::RecaptchaProvider, turnstile::TurnstileProvider,
 };
 use your_app_human_verification_crypto::CryptoEngine;
-use std::env;
-use std::net::SocketAddr;
-use std::sync::Arc;
-use tonic::transport::Server;
-use tracing::{info, warn};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

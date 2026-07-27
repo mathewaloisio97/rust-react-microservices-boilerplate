@@ -4,16 +4,16 @@
 //! to the infrastructure dependencies, and boots the gRPC API server alongside the
 //! asynchronous background email worker.
 
-use your_app_contracts::email::v1::email_service_server::EmailServiceServer;
-use your_app_email::amqp::AmqpBroker;
-use your_app_email::repository::PostgresEmailRepository;
-use your_app_email::worker::start_email_worker;
-use your_app_email::YourAppEmail;
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tonic::transport::Server;
 use tracing::{info, warn};
+use your_app_contracts::email::v1::email_service_server::EmailServiceServer;
+use your_app_email::amqp::AmqpBroker;
+use your_app_email::repository::PostgresEmailRepository;
+use your_app_email::worker::start_email_worker;
+use your_app_email::YourAppEmail;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

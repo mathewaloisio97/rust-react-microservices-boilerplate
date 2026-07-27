@@ -11,16 +11,16 @@ pub mod repository;
 pub mod worker;
 
 use crate::{amqp::AmqpBroker, events::EmailDispatchEvent, repository::EmailRepository};
-use your_app_contracts::email::v1::email_service_server::EmailService;
-use your_app_contracts::email::v1::{
-    GetEmailRequest, GetEmailResponse, SetEmailRequest, SetEmailResponse, VerifyEmailRequest,
-    VerifyEmailResponse,
-};
 use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
 use tonic::{Request, Response, Status};
 use tracing::{error, info, instrument};
 use uuid::Uuid;
+use your_app_contracts::email::v1::email_service_server::EmailService;
+use your_app_contracts::email::v1::{
+    GetEmailRequest, GetEmailResponse, SetEmailRequest, SetEmailResponse, VerifyEmailRequest,
+    VerifyEmailResponse,
+};
 
 /// Implements the gRPC service for managing user email state and confirmation lifecycles.
 pub struct YourAppEmail {

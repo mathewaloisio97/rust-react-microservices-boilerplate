@@ -10,8 +10,8 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use your_app_contracts::auth::v1::RevokeTokenRequest;
 use serde_json::json;
+use your_app_contracts::auth::v1::RevokeTokenRequest;
 
 /// Terminate the active user session.
 ///

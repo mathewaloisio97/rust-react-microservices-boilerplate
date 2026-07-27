@@ -4,15 +4,15 @@
 //! executes automated schema migrations, configures OAuth providers,
 //! and binds the gRPC interface.
 
-use your_app_contracts::identity::v1::identity_service_server::IdentityServiceServer;
-use your_app_identity::oauth::OAuthRegistry;
-use your_app_identity::repository::PostgresUserRepository;
-use your_app_identity::YourAppIdentity;
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tonic::transport::Server;
 use tracing::info;
+use your_app_contracts::identity::v1::identity_service_server::IdentityServiceServer;
+use your_app_identity::oauth::OAuthRegistry;
+use your_app_identity::repository::PostgresUserRepository;
+use your_app_identity::YourAppIdentity;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

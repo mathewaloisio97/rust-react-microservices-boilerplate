@@ -7,6 +7,12 @@ default:
 # Run the full validation pipeline locally. (Use `just ci local-dev` to allow dev secrets)
 ci mode="prod": check-contracts (check-rust mode) check-frontend
 
+# Auto-format all subsystems across the repository.
+format:
+    cd contracts && just format
+    cd backend-services && cargo fmt
+    cd website && pnpm run format
+
 # Compile Protobuf schemas into TypeScript interfaces.
 check-contracts:
     cd contracts && just build

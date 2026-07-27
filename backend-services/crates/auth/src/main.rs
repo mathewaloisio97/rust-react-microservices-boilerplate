@@ -4,15 +4,15 @@
 //! relational database connection pool, applies outstanding schema migrations, and binds
 //! the compiled gRPC transport layer to the network interface socket.
 
-use your_app_auth::amqp::AmqpEventPublisher;
-use your_app_auth::repository::PostgresTokenRepository;
-use your_app_auth::YourAppAuth;
-use your_app_contracts::auth::v1::auth_service_server::AuthServiceServer;
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tonic::transport::Server;
 use tracing::{info, warn};
+use your_app_auth::amqp::AmqpEventPublisher;
+use your_app_auth::repository::PostgresTokenRepository;
+use your_app_auth::YourAppAuth;
+use your_app_contracts::auth::v1::auth_service_server::AuthServiceServer;
 
 /// Application entry point configuring and executing the async gRPC service runtime.
 ///

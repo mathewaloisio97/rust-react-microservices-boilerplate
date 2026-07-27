@@ -3,13 +3,16 @@
 //! Manages cryptographic RSA key pairs, handles public key exports for downstream
 //! verification, and signs structured token payloads.
 
+#[cfg(feature = "local-dev")]
+use tracing::warn;
+
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use rsa::{
     pkcs8::{DecodePrivateKey, EncodePrivateKey, EncodePublicKey, LineEnding},
     RsaPrivateKey, RsaPublicKey,
 };
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn};
+use tracing::info;
 
 /// Structured JWT claims payload representing authenticated identity and granted roles.
 #[derive(Debug, Serialize, Deserialize)]

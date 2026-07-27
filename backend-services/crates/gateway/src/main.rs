@@ -12,13 +12,6 @@ use axum::http::HeaderValue;
 
 use axum::http::{header, Method};
 use axum::Router;
-use your_app_constants::security::DEFAULT_HV_SECRET;
-use your_app_contracts::access_tokens::v1::access_tokens_service_client::AccessTokensServiceClient;
-use your_app_contracts::auth::v1::auth_service_client::AuthServiceClient;
-use your_app_contracts::email::v1::email_service_client::EmailServiceClient;
-use your_app_contracts::human_verification::v1::human_verification_service_client::HumanVerificationServiceClient;
-use your_app_contracts::identity::v1::identity_service_client::IdentityServiceClient;
-use your_app_gateway::{dtos, handlers, routes, state::AppState};
 use std::env;
 use std::net::SocketAddr;
 use tonic::transport::Channel;
@@ -29,6 +22,13 @@ use utoipa::{
     Modify, OpenApi,
 };
 use utoipa_swagger_ui::SwaggerUi;
+use your_app_constants::security::DEFAULT_HV_SECRET;
+use your_app_contracts::access_tokens::v1::access_tokens_service_client::AccessTokensServiceClient;
+use your_app_contracts::auth::v1::auth_service_client::AuthServiceClient;
+use your_app_contracts::email::v1::email_service_client::EmailServiceClient;
+use your_app_contracts::human_verification::v1::human_verification_service_client::HumanVerificationServiceClient;
+use your_app_contracts::identity::v1::identity_service_client::IdentityServiceClient;
+use your_app_gateway::{dtos, handlers, routes, state::AppState};
 
 /// Tells Swagger UI how to display and accept our Bearer token login security format.
 struct SecurityAddon;
