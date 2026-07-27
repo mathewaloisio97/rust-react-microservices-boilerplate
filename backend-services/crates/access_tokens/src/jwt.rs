@@ -5,7 +5,7 @@
 
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use rsa::{
-    pkcs8::{EncodePrivateKey, EncodePublicKey, LineEnding},
+    pkcs8::{DecodePrivateKey, EncodePrivateKey, EncodePublicKey, LineEnding},
     RsaPrivateKey, RsaPublicKey,
 };
 use serde::{Deserialize, Serialize};
@@ -41,18 +41,53 @@ pub struct JwtManager {
 
 impl JwtManager {
     /// Instantiates a new `JwtManager`, loading a PKCS#8 PEM string or generating an ephemeral 2048-bit keypair.
+    ///
+    /// In `local-dev` environments, if no key is provided, it generates and caches
+    /// a persistent RSA keypair locally to ensure JWTs survive backend restarts.
     pub fn new(private_pem_opt: Option<String>) -> Self {
-        if let Some(pem) = private_pem_opt {
-            info!("Loading provided RSA Private Key from configuration.");
-            let encoding_key = EncodingKey::from_rsa_pem(pem.as_bytes())
-                .expect("Failed to parse provided RSA PEM");
+        #[allow(unused_mut)]
+        let mut final_pem = private_pem_opt;
+
+        #[cfg(feature = "local-dev")]
+        if final_pem.is_none() {
+            let key_path = ".dev_jwt_private_key.pem";
+            if let Ok(cached_pem) = std::fs::read_to_string(key_path) {
+                info!(
+                    "JWT: Loaded persistent development RSA key from {}.",
+                    key_path
+                );
+                final_pem = Some(cached_pem);
+            } else {
+                warn!("JWT: Generating new persistent RSA keypair for local development...");
+                let mut rng = rand::rng();
+                let priv_key =
+                    RsaPrivateKey::new(&mut rng, 2048).expect("Failed to generate RSA key");
+                let pem = priv_key.to_pkcs8_pem(LineEnding::LF).unwrap().to_string();
+                std::fs::write(key_path, &pem).expect("Failed to write dev RSA key");
+                final_pem = Some(pem);
+            }
+        }
+
+        if let Some(pem) = final_pem {
+            info!("JWT: Initializing with configured RSA Private Key.");
+
+            // Parse the PKCS#8 PEM to mathematically derive the Public Key for exportation.
+            let priv_key = RsaPrivateKey::from_pkcs8_pem(&pem)
+                .expect("FATAL: Failed to parse the provided RSA Private Key PEM");
+            let pub_key = RsaPublicKey::from(&priv_key);
+
+            let public_key_pem = pub_key.to_public_key_pem(LineEnding::LF).unwrap();
+            let encoding_key = EncodingKey::from_rsa_pem(pem.as_bytes()).unwrap();
 
             Self {
                 encoding_key,
-                public_key_pem: "PUBLIC_KEY_EXTRACTION_OMITTED".to_string(),
+                public_key_pem,
             }
         } else {
-            warn!("No Private Key configured. Generating ephemeral 2048-bit RSA keypair.");
+            // Failsafe for production if the environment variable is missing.
+            tracing::error!(
+                "FATAL: No Private Key configured! Generating ephemeral 2048-bit RSA keypair."
+            );
             let mut rng = rand::rng();
             let priv_key = RsaPrivateKey::new(&mut rng, 2048).expect("Failed to generate RSA key");
             let pub_key = RsaPublicKey::from(&priv_key);

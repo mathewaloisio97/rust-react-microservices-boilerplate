@@ -24,12 +24,9 @@ __pycache__/
 *.pyc
 
 # =========================
-# .NET / C# (Client APIs)
+# Ignore generated developer private keys
 # =========================
-/dot-net-apis/**/obj/
-/dot-net-apis/**/bin/
-# Explicitly track compiled managed Release DLLs for Unity for version matching
-!/dot-net-apis/**/bin/Release/netstandard2.1/*.dll
+backend-services/.dev_jwt_private_key.pem
 
 # =========================
 # React / Node (Website)
@@ -45,11 +42,6 @@ __pycache__/
 
 # DO NOT ignore crate-level .env files (they only contain local dev sqlx URLs)
 !/backend-services/crates/**/.env
-
-# =========================
-# Ignore Generated .NET Files
-# =========================
-dot-net-apis/**/Generated/
 
 # =========================
 # Local Files

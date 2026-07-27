@@ -3,6 +3,10 @@ name = "cleard_access_tokens"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+local-dev = []
+
 [dependencies]
 tokio = { workspace = true }
 tonic = { workspace = true }

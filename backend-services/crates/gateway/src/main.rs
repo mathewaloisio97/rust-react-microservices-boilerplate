@@ -60,7 +60,9 @@ impl Modify for SecurityAddon {
         handlers::human_verification::verify,
         handlers::email::get_email,
         handlers::email::set_email,
-        handlers::email::verify_email
+        handlers::email::verify_email,
+        handlers::access_tokens::issue_token,
+        handlers::access_tokens::get_public_key
     ),
     components(schemas(
         dtos::LocalRegisterPayload,
@@ -73,7 +75,10 @@ impl Modify for SecurityAddon {
         dtos::SetEmailPayload,
         dtos::SetEmailResponse,
         dtos::VerifyEmailPayload,
-        dtos::VerifyEmailResponse
+        dtos::VerifyEmailResponse,
+        dtos::IssueTokenPayload,
+        dtos::IssueTokenResponse,
+        dtos::GetPublicKeyResponse
     )),
     modifiers(&SecurityAddon),
     tags((name = "Cleard Edge Gateway", description = "Cleard REST API"))
@@ -205,6 +210,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .merge(routes::auth::build_router(state.clone()))
         .merge(routes::human_verification::build_router(state.clone()))
         .merge(routes::email::build_router(state.clone()))
+        .merge(routes::access_tokens::build_router(state.clone()))
         .layer(cors);
 
     // Open network port listener and begin serving client traffic.
