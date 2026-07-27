@@ -103,6 +103,13 @@ just ci
 just ci local-dev
 ```
 
+### Step 5: Code Formatting
+To keep Protobuf contracts, Rust crates, and TypeScript/React code aligned with the repository's style guidelines:
+
+```bash
+just format
+```
+
 ---
 
 ## Running the Services Locally
