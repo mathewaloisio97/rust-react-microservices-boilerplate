@@ -1,4 +1,4 @@
-//! Binary entry point for the YourApp email identity microservice.
+//! Binary entry point for the Email identity microservice.
 //!
 //! Initializes environment configuration, runs database schema migrations, connects
 //! to the infrastructure dependencies, and boots the gRPC API server alongside the
@@ -15,9 +15,13 @@ use your_app_email::repository::PostgresEmailRepository;
 use your_app_email::worker::start_email_worker;
 use your_app_email::YourAppEmail;
 
+/// Application entry point configuring and executing the async gRPC service runtime.
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt::init();
+    // Initialize OpenTelemetry distributed tracing and logging.
+    let otlp_endpoint =
+        std::env::var("OTLP_ENDPOINT").unwrap_or_else(|_| "http://localhost:4317".to_string());
+    your_app_telemetry::init_telemetry("your_app_email", &otlp_endpoint)?;
 
     // Parse runtime parameters from the environment fallback defaults.
     let db_url = std::env::var("EMAIL_DATABASE_URL")
@@ -34,7 +38,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .max_connections(5)
         .connect(&db_url)
         .await?;
-    info!("Applying Email Migrations...");
+
+    info!("Applying Email Database Migrations...");
     sqlx::migrate!("./migrations").run(&pool).await?;
 
     // Connect to AMQP with a retry boundary to accommodate transient container startup ordering.
@@ -60,8 +65,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let service = YourAppEmail::new(repo, broker);
 
     let addr: SocketAddr = "0.0.0.0:50053".parse().unwrap();
-    info!("Email gRPC Service listening on {}", addr);
+    info!("Email gRPC Service actively listening on {}", addr);
+
     Server::builder()
+        .layer(your_app_telemetry::OtelGrpcLayer)
         .add_service(EmailServiceServer::new(service))
         .serve(addr)
         .await?;

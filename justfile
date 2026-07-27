@@ -34,7 +34,7 @@ check-frontend:
 
 # Spins up the database and ensures all schemas are migrated.
 db-up:
-    docker compose up -d postgres rabbitmq mailpit
+    docker compose up -d postgres rabbitmq mailpit jaeger
     @echo Waiting for infrastructure to boot...
     timeout 3 >nul 2>&1 || ping -n 4 127.0.0.1 >nul
     @echo Running Identity Migrations...
@@ -47,7 +47,7 @@ db-up:
 # Gracefully stops all infrastructure containers without deleting volume data.
 db-down:
     @echo Stopping dev infrastructure containers...
-    docker compose stop postgres rabbitmq mailpit
+    docker compose stop postgres rabbitmq mailpit jaeger
 
 # Updates the .sqlx offline caches for all microservices, then stops the DB.
 db-prepare: db-up

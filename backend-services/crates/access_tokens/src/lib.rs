@@ -10,7 +10,7 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use sha2::{Digest, Sha256};
 use std::sync::Arc;
 use time::OffsetDateTime;
-use tonic::{transport::Channel, Request, Response, Status};
+use tonic::{Request, Response, Status};
 use tracing::{error, info, instrument};
 use your_app_contracts::access_tokens::v1::access_tokens_service_server::AccessTokensService;
 use your_app_contracts::access_tokens::v1::{
@@ -18,16 +18,20 @@ use your_app_contracts::access_tokens::v1::{
 };
 use your_app_contracts::auth::v1::auth_service_client::AuthServiceClient;
 use your_app_contracts::auth::v1::AuthenticateRequest;
+use your_app_telemetry::InstrumentedChannel;
 
 /// Implements the gRPC service responsible for validating sessions and issuing JWTs.
 pub struct YourAppAccessTokens {
     jwt_manager: Arc<JwtManager>,
-    auth_client: AuthServiceClient<Channel>,
+    auth_client: AuthServiceClient<InstrumentedChannel>,
 }
 
 impl YourAppAccessTokens {
     /// Instantiates the service with its JWT signing manager and upstream Auth gRPC client.
-    pub fn new(jwt_manager: Arc<JwtManager>, auth_client: AuthServiceClient<Channel>) -> Self {
+    pub fn new(
+        jwt_manager: Arc<JwtManager>,
+        auth_client: AuthServiceClient<InstrumentedChannel>,
+    ) -> Self {
         Self {
             jwt_manager,
             auth_client,

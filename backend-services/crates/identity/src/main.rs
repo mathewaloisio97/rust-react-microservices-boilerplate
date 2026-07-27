@@ -14,9 +14,13 @@ use your_app_identity::oauth::OAuthRegistry;
 use your_app_identity::repository::PostgresUserRepository;
 use your_app_identity::YourAppIdentity;
 
+/// Application entry point configuring and executing the async gRPC service runtime.
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt::init();
+    // Initialize OpenTelemetry distributed tracing and logging.
+    let otlp_endpoint =
+        std::env::var("OTLP_ENDPOINT").unwrap_or_else(|_| "http://localhost:4317".to_string());
+    your_app_telemetry::init_telemetry("your_app_identity", &otlp_endpoint)?;
 
     let db_url = std::env::var("IDENTITY_DATABASE_URL")
         .unwrap_or_else(|_| "postgres://postgres@localhost:5432/your_app_identity".to_string());
@@ -37,12 +41,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let service = YourAppIdentity::new(repo, oauth_registry);
 
     let addr: SocketAddr = "0.0.0.0:50051".parse().unwrap();
-    info!(
-        "YourApp Identity gRPC Service actively listening on {}",
-        addr
-    );
+    info!("Identity gRPC Service actively listening on {}", addr);
 
     Server::builder()
+        .layer(your_app_telemetry::OtelGrpcLayer)
         .add_service(IdentityServiceServer::new(service))
         .serve(addr)
         .await?;

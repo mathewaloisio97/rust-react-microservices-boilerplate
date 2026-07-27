@@ -12,6 +12,7 @@ This boilerplate is built on a high-performance, secure-by-default technology st
 
 * **Frontend:** React 19, TypeScript, Vite, and React Router.
 * **Backend:** Rust, Axum (HTTP Edge Gateway), and Tonic (Internal gRPC communication).
+* **Observability & Tracing:** OpenTelemetry (OTLP context propagation across gRPC/HTTP) integrated with Jaeger for centralized distributed tracing.
 * **Databases & ORM:** PostgreSQL managed via SQLx (with offline compilation support).
 * **Message Broker:** RabbitMQ (AMQP) for decoupled, asynchronous domain events (e.g., welcome emails, session revocations).
 * **Authentication & Identity:**

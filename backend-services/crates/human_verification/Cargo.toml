@@ -12,11 +12,13 @@ tokio = { workspace = true }
 tonic = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+tracing-opentelemetry = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 async-trait = { workspace = true }
 reqwest = { workspace = true }
 
+your_app_telemetry = { path = "../telemetry" }
 your_app_constants = { path = "../constants" }
 your_app_contracts = { path = "../contracts" }
 your_app_human_verification_crypto = { path = "../human_verification_crypto" }

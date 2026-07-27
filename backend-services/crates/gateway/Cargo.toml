@@ -18,8 +18,9 @@ tracing-subscriber = { workspace = true }
 utoipa = { workspace = true }
 utoipa-swagger-ui = { workspace = true }
 
-tower-http = { version = "0.7", features = ["cors"] }
+tower-http = { version = "0.7", features = ["cors", "trace"] }
 
+your_app_telemetry = { path = "../telemetry" }
 your_app_constants = { path = "../constants" }
 your_app_contracts = { path = "../contracts" }
 your_app_human_verification_crypto = { path = "../human_verification_crypto" }

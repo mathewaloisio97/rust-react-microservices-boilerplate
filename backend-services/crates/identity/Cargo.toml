@@ -9,6 +9,7 @@ tokio = { workspace = true }
 tonic = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+tracing-opentelemetry = { workspace = true }
 serde = { workspace = true }
 sqlx = { workspace = true }
 uuid = { workspace = true }
@@ -19,4 +20,5 @@ argon2 = "0.5"
 jsonwebtoken = { workspace = true }
 reqwest = { workspace = true }
 
+your_app_telemetry = { path = "../telemetry" }
 your_app_contracts = { path = "../contracts" }

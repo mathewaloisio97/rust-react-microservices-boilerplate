@@ -6,7 +6,7 @@
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tonic::transport::Channel;
+use tonic::transport::{Channel, Server};
 use tracing::info;
 use your_app_access_tokens::jwt::JwtManager;
 use your_app_access_tokens::YourAppAccessTokens;
@@ -16,7 +16,10 @@ use your_app_contracts::auth::v1::auth_service_client::AuthServiceClient;
 /// Application entry point configuring and executing the async gRPC service runtime.
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt::init();
+    // Initialize distributed tracing.
+    let otlp_endpoint =
+        std::env::var("OTLP_ENDPOINT").unwrap_or_else(|_| "http://localhost:4317".to_string());
+    your_app_telemetry::init_telemetry("your_app_access_tokens", &otlp_endpoint)?;
 
     let auth_url = env::var("AUTH_URL").unwrap_or_else(|_| "http://localhost:50052".to_string());
     let server_addr =
@@ -25,8 +28,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Read the primary signing key from the environment.
     let private_key_pem = env::var("JWT_PRIVATE_KEY_PEM").ok();
 
-    let auth_channel = Channel::from_shared(auth_url)?.connect_lazy();
-    let auth_client = AuthServiceClient::new(auth_channel);
+    // Establish an instrumented channel to the upstream Auth subsystem.
+    // This ensures outgoing gRPC requests automatically inject active trace contexts.
+    let raw_auth_channel = Channel::from_shared(auth_url)?.connect_lazy();
+    let instrumented_auth_channel = your_app_telemetry::instrument_channel(raw_auth_channel);
+    let auth_client = AuthServiceClient::new(instrumented_auth_channel);
 
     // Pass the environment key to the manager. If None, it will fall back to local-dev persistent generation.
     let jwt_manager = Arc::new(JwtManager::new(private_key_pem));
@@ -35,7 +41,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr: SocketAddr = server_addr.parse()?;
     info!("Access Tokens Issuance Service online at {}", addr);
 
-    tonic::transport::Server::builder()
+    Server::builder()
+        .layer(your_app_telemetry::OtelGrpcLayer)
         .add_service(AccessTokensServiceServer::new(service))
         .serve(addr)
         .await?;

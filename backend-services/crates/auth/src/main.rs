@@ -17,12 +17,14 @@ use your_app_contracts::auth::v1::auth_service_server::AuthServiceServer;
 /// Application entry point configuring and executing the async gRPC service runtime.
 ///
 /// # Errors
-/// Returns an error box if initialization configuration reads, database connectivity,
+/// Returns an error if telemetry initialization, database connectivity,
 /// embedded migration execution, or socket binding constraints fail to resolve.
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize structural tracing logging to stdout.
-    tracing_subscriber::fmt::init();
+    // Initialize OpenTelemetry distributed tracing and logging.
+    let otlp_endpoint =
+        std::env::var("OTLP_ENDPOINT").unwrap_or_else(|_| "http://localhost:4317".to_string());
+    your_app_telemetry::init_telemetry("your_app_auth", &otlp_endpoint)?;
 
     // Pull database target URI from system environment variables or fallback to local baseline defaults.
     let db_url = std::env::var("AUTH_DATABASE_URL")
@@ -43,7 +45,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     sqlx::migrate!("./migrations").run(&pool).await?;
     info!("Auth DB Migrations Applied Successfully");
 
-    // AMQP event broker loop.
+    // AMQP event broker loop with transient failure recovery.
     let mut retries = 5;
     let event_publisher = loop {
         match AmqpEventPublisher::new(&amqp_url).await {
@@ -59,16 +61,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    // Instanciate thread-safe abstract database access object layers.
+    // Instantiate thread-safe abstract database access object layers.
     let repo = Arc::new(PostgresTokenRepository::new(pool));
     let service = YourAppAuth::new(repo, event_publisher);
 
     // Bind and resolve the listener interface address.
     let addr: SocketAddr = "0.0.0.0:50052".parse().unwrap();
-    info!("Auth gRPC Service listening on {}", addr);
+    info!("Auth gRPC Service actively listening on {}", addr);
 
     // Bootstrap and block the thread on the asynchronous Tonic gRPC server orchestrator.
     Server::builder()
+        .layer(your_app_telemetry::OtelGrpcLayer)
         .add_service(AuthServiceServer::new(service))
         .serve(addr)
         .await?;

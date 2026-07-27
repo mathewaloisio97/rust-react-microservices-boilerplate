@@ -16,6 +16,7 @@ use std::env;
 use std::net::SocketAddr;
 use tonic::transport::Channel;
 use tower_http::cors::CorsLayer;
+use tower_http::trace::TraceLayer;
 use tracing::info;
 use utoipa::{
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
@@ -88,11 +89,12 @@ struct ApiDoc;
 /// Starts the web server loop.
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Start logging system to print messages to the console terminal.
-    tracing_subscriber::fmt::init();
+    // Initialize OpenTelemetry distributed tracing and logging.
+    let otlp_endpoint =
+        env::var("OTLP_ENDPOINT").unwrap_or_else(|_| "http://localhost:4317".to_string());
+    your_app_telemetry::init_telemetry("your_app_gateway", &otlp_endpoint)?;
 
     // Ingest configuration from the environment, falling back to local dev defaults.
-    // This allows seamless integration with Docker Compose networking.
     let identity_url =
         env::var("IDENTITY_URL").unwrap_or_else(|_| "http://localhost:50051".to_string());
     let auth_url = env::var("AUTH_URL").unwrap_or_else(|_| "http://localhost:50052".to_string());
@@ -105,8 +107,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         env::var("ACCESS_TOKENS_URL").unwrap_or_else(|_| "http://localhost:50054".to_string());
     let server_addr = env::var("SERVER_ADDR").unwrap_or_else(|_| "0.0.0.0:3000".to_string());
 
-    // Verify the integrity of the cryptographic validation keys. Allowing fallback
-    // credentials is restricted to builds explicitly compiling with the "local-dev" feature.
+    // Verify the integrity of the cryptographic validation keys.
     if hv_secret == DEFAULT_HV_SECRET {
         #[cfg(feature = "local-dev")]
         {
@@ -124,36 +125,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Establish a lazy multiplexed channel to the Identity service.
+    // Establish instrumented channels to the backend microservices.
+    // This injects OpenTelemetry headers automatically on outgoing requests.
     info!("Connecting to Identity Subsystem at {}...", identity_url);
-    let identity_channel = Channel::from_shared(identity_url)?.connect_lazy();
+    let identity_channel =
+        your_app_telemetry::instrument_channel(Channel::from_shared(identity_url)?.connect_lazy());
 
-    // Establish a lazy multiplexed channel to the Auth service.
     info!("Connecting to Auth Subsystem at {}...", auth_url);
-    let auth_channel = Channel::from_shared(auth_url)?.connect_lazy();
+    let auth_channel =
+        your_app_telemetry::instrument_channel(Channel::from_shared(auth_url)?.connect_lazy());
 
-    // Establish a lazy multiplexed channel to the Human Verification service.
     info!(
         "Connecting to Human Verification Subsystem at {}...",
         hv_url
     );
-    let hv_channel = Channel::from_shared(hv_url)?.connect_lazy();
+    let hv_channel =
+        your_app_telemetry::instrument_channel(Channel::from_shared(hv_url)?.connect_lazy());
 
-    // Establish a lazy multiplexed channel to the Email service.
     info!("Connecting to Email Subsystem at {}...", email_url);
-    let email_channel = Channel::from_shared(email_url)?.connect_lazy();
+    let email_channel =
+        your_app_telemetry::instrument_channel(Channel::from_shared(email_url)?.connect_lazy());
 
-    // Establish a lazy multiplexed channel to the Access Tokens service.
     info!(
         "Connecting to Access Tokens Subsystem at {}...",
         access_tokens_url
     );
-    let access_tokens_channel = Channel::from_shared(access_tokens_url)?.connect_lazy();
+    let access_tokens_channel = your_app_telemetry::instrument_channel(
+        Channel::from_shared(access_tokens_url)?.connect_lazy(),
+    );
 
-    // Initialize the stateless cryptography engine for validating Captcha vouchers at the edge.
     let crypto_engine = your_app_human_verification_crypto::CryptoEngine::new(hv_secret.as_bytes());
 
-    // Package clients into a single state structure to share with web route handlers.
     let state = AppState {
         identity_client: IdentityServiceClient::new(identity_channel),
         auth_client: AuthServiceClient::new(auth_channel),
@@ -163,7 +165,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         crypto_engine,
     };
 
-    // Configure CORS restrictions based on the compilation profile.
     let cors_base = CorsLayer::new()
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
         .allow_headers([
@@ -203,7 +204,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let openapi = ApiDoc::openapi();
 
-    // Combine individual endpoint blocks and our interactive Swagger documentation pages.
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", openapi))
         .merge(routes::identity::build_router(state.clone()))
@@ -211,9 +211,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .merge(routes::human_verification::build_router(state.clone()))
         .merge(routes::email::build_router(state.clone()))
         .merge(routes::access_tokens::build_router(state.clone()))
-        .layer(cors);
+        .layer(cors)
+        .layer(TraceLayer::new_for_http());
 
-    // Open network port listener and begin serving client traffic.
     let addr: SocketAddr = server_addr.parse()?;
     info!("Gateway REST API online at http://{}", addr);
 

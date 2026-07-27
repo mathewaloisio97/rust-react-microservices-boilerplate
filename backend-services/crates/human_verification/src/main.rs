@@ -17,20 +17,28 @@ use your_app_human_verification::providers::{
 };
 use your_app_human_verification_crypto::CryptoEngine;
 
+/// Application entry point configuring and executing the async gRPC service runtime.
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt::init();
+    // Initialize OpenTelemetry distributed tracing and logging.
+    let otlp_endpoint =
+        std::env::var("OTLP_ENDPOINT").unwrap_or_else(|_| "http://localhost:4317".to_string());
+    your_app_telemetry::init_telemetry("your_app_human_verification", &otlp_endpoint)?;
 
     let config = VerificationConfig::from_env();
     let hv_secret =
         env::var("HUMAN_VERIFICATION_SECRET").unwrap_or_else(|_| DEFAULT_HV_SECRET.to_string());
 
     if hv_secret == DEFAULT_HV_SECRET {
-        if cfg!(feature = "local-dev") {
+        #[cfg(feature = "local-dev")]
+        {
             warn!("===========================================================");
             warn!("SECURITY ALERT: Running with the default development secret");
             warn!("===========================================================");
-        } else {
+        }
+
+        #[cfg(not(feature = "local-dev"))]
+        {
             tracing::error!(
                 "FATAL: Insecure fallback secret detected without local-dev authorization!"
             );
@@ -65,11 +73,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let addr: SocketAddr = "0.0.0.0:50055".parse().unwrap();
     info!(
-        "YourApp Human Verification gRPC Service actively listening on {}",
+        "Human Verification gRPC Service actively listening on {}",
         addr
     );
 
     Server::builder()
+        .layer(your_app_telemetry::OtelGrpcLayer)
         .add_service(HumanVerificationServiceServer::new(grpc_service))
         .serve(addr)
         .await?;
