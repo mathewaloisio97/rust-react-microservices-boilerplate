@@ -1,6 +1,6 @@
 //! API client utilities for gateway communication and authentication flows.
 
-const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3000';
+import { GATEWAY_URL } from '../config.js';
 
 export const api = {
   /**

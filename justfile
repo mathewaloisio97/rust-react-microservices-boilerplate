@@ -28,8 +28,8 @@ check-frontend:
 
 # Spins up the database and ensures all schemas are migrated.
 db-up:
-    docker compose up -d postgres
-    @echo Waiting for Postgres to boot...
+    docker compose up -d postgres rabbitmq mailpit
+    @echo Waiting for infrastructure to boot...
     timeout 3 >nul 2>&1 || ping -n 4 127.0.0.1 >nul
     @echo Running Identity Migrations...
     cd backend-services/crates/identity && cargo sqlx migrate run
@@ -37,6 +37,11 @@ db-up:
     cd backend-services/crates/auth && cargo sqlx migrate run
     @echo Running Email Migrations...
     cd backend-services/crates/email && cargo sqlx migrate run
+
+# Gracefully stops all infrastructure containers without deleting volume data.
+db-down:
+    @echo Stopping dev infrastructure containers...
+    docker compose stop postgres rabbitmq mailpit
 
 # Updates the .sqlx offline caches for all microservices, then stops the DB.
 db-prepare: db-up
@@ -46,10 +51,15 @@ db-prepare: db-up
     cd backend-services/crates/auth && cargo sqlx prepare
     @echo Preparing offline cache for Email...
     cd backend-services/crates/email && cargo sqlx prepare
-    @echo Stopping Postgres...
-    docker compose stop postgres
+    @echo Stopping infrastructure...
+    just db-down
     @echo SUCCESS: Offline caches updated. You can now commit the .sqlx folders!
 
 # Destroys the database volume entirely (Useful if initialization scripts change).
 db-clean:
     docker compose down -v
+    
+# Boots the infrastructure and runs the entire backend cluster + frontend concurrently
+dev: db-up
+    node --env-file=.env scripts/dev.js
+

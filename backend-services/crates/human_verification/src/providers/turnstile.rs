@@ -68,13 +68,12 @@ impl VerificationProvider for TurnstileProvider {
     /// * `Err(...)` if a network failure occurs, the HTTP request fails, or JSON deserialization fails.
     async fn verify(&self, token: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         let url = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-        let body = format!("secret={}&response={}", self.secret_key, token);
+        let params = [("secret", self.secret_key.as_str()), ("response", token)];
 
         let response: TurnstileResponse = self
             .http_client
             .post(url)
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .body(body)
+            .form(&params)
             .send()
             .await?
             .json()

@@ -4,7 +4,13 @@
 //! creating our shared application state, configuring interactive API
 //! documentation (Swagger UI), and starting the network listener.
 
-use axum::http::{header, HeaderValue, Method};
+#[cfg(feature = "local-dev")]
+use tower_http::cors::Any;
+
+#[cfg(not(feature = "local-dev"))]
+use axum::http::HeaderValue;
+
+use axum::http::{header, Method};
 use axum::Router;
 use cleard_constants::security::DEFAULT_HV_SECRET;
 use cleard_contracts::access_tokens::v1::access_tokens_service_client::AccessTokensServiceClient;
@@ -16,7 +22,7 @@ use cleard_gateway::{dtos, handlers, routes, state::AppState};
 use std::env;
 use std::net::SocketAddr;
 use tonic::transport::Channel;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 use tracing::info;
 use utoipa::{
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
@@ -97,13 +103,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Verify the integrity of the cryptographic validation keys. Allowing fallback
     // credentials is restricted to builds explicitly compiling with the "local-dev" feature.
     if hv_secret == DEFAULT_HV_SECRET {
-        if cfg!(feature = "local-dev") {
-            // Safe for local builds (debug or release) explicitly authorized by the feature flag.
+        #[cfg(feature = "local-dev")]
+        {
             tracing::warn!("===========================================================");
             tracing::warn!("SECURITY ALERT: Running with the default development secret");
             tracing::warn!("===========================================================");
-        } else {
-            // Hard crash on any build profile that lacks explicit local-dev authorization.
+        }
+
+        #[cfg(not(feature = "local-dev"))]
+        {
             tracing::error!(
                 "FATAL: Insecure fallback secret detected without local-dev authorization!"
             );
@@ -159,10 +167,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "x-captcha-voucher".parse().unwrap(),
         ]);
 
-    let cors = if cfg!(feature = "local-dev") {
+    #[cfg(feature = "local-dev")]
+    let cors = {
         tracing::warn!("CORS: Running in local-dev mode. Allowing all origins.");
         cors_base.allow_origin(Any)
-    } else {
+    };
+
+    #[cfg(not(feature = "local-dev"))]
+    let cors = {
         let origins_str = env::var("ALLOWED_CORS_ORIGINS")
             .expect("FATAL: ALLOWED_CORS_ORIGINS environment variable must be set in production for CORS constraints.");
 

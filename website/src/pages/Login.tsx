@@ -4,10 +4,8 @@ import { Turnstile } from '@marsidev/react-turnstile';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { GATEWAY_URL, TURNSTILE_SITE_KEY } from '../config.js';
 import { api } from '../lib/api.js';
-
-const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3000';
-const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
 
 /**
  * User login interface enabling standard and social authentication once a Turnstile CAPTCHA is verified.

@@ -12,28 +12,39 @@ use tokio::sync::RwLock;
 /// Standard claims expected in a verified OIDC identity token.
 #[derive(Debug, Deserialize)]
 struct OidcClaims {
+    /// Unique subject identifier assigned by the identity provider.
     sub: String,
 }
 
+/// JSON Web Key (JWK) representing a public RSA key used for signature verification.
 #[derive(Deserialize, Clone)]
 struct Jwk {
+    /// Key ID matching the `kid` specified in the JWT header.
     kid: String,
+    /// Base64URL-encoded RSA public modulus.
     n: String,
+    /// Base64URL-encoded RSA public exponent.
     e: String,
 }
 
+/// JSON Web Key Set (JWKS) response payload returned by identity providers.
 #[derive(Deserialize)]
 struct JwksResponse {
+    /// Array of public keys published by the identity provider.
     keys: Vec<Jwk>,
 }
 
 /// Generic OIDC Provider supporting JWKS key rotation and thread-safe caching.
 pub struct OidcProvider {
+    /// Expected audience claim (`aud`) matching your registered client ID.
     client_id: String,
+    /// Public endpoint URL hosting the provider's active JWKS.
     jwks_url: String,
+    /// Expected token issuer claim (`iss`).
     issuer: String,
+    /// HTTP client instance used for outbound JWKS fetch operations.
     http_client: Client,
-    /// Thread-safe cache of public RSA keys mapped by their Key ID (kid).
+    /// Thread-safe cache of public RSA keys mapped by their Key ID (`kid`).
     key_cache: RwLock<HashMap<String, DecodingKey>>,
 }
 

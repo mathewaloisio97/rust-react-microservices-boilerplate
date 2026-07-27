@@ -13,7 +13,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
 
     let auth_url = env::var("AUTH_URL").unwrap_or_else(|_| "http://localhost:50052".to_string());
-    let server_addr = env::var("SERVER_ADDR").unwrap_or_else(|_| "0.0.0.0:50054".to_string());
+    let server_addr =
+        env::var("ACCESS_TOKENS_ADDR").unwrap_or_else(|_| "0.0.0.0:50054".to_string());
 
     let auth_channel = Channel::from_shared(auth_url)?.connect_lazy();
     let auth_client = AuthServiceClient::new(auth_channel);
