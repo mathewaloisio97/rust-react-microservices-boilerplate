@@ -1,7 +1,7 @@
 -- ============================================================================
 -- Table: users
 -- Description:
---   Stores core Cleard user identity records.
+--   Stores core YourApp user identity records.
 --   Uses Rust-generated UUIDv7 for clustered B-Tree indexing performance.
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS users (
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- ============================================================================
 -- Table: oauth_links
 -- Description:
---   Links third-party OAuth providers (Google, Apple, Facebook) to a Cleard user.
+--   Links third-party OAuth providers (Google, Apple, Facebook) to a YourApp user.
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS oauth_links (
     -- Foreign key referencing the primary identity record in the users table.

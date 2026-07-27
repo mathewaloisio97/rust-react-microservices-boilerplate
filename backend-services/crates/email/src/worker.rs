@@ -51,7 +51,7 @@ pub async fn start_email_worker(amqp_url: String, smtp_host: String, smtp_port: 
                     {
                         info!("Processing dispatch to {}", event.target_email);
 
-                        let from_addr = "Cleard <noreply@cleard.online>"
+                        let from_addr = "YourApp <noreply@your_app.online>"
                             .parse::<lettre::message::Mailbox>()
                             .unwrap();
                         match event.target_email.parse::<lettre::message::Mailbox>() {
@@ -59,7 +59,7 @@ pub async fn start_email_worker(amqp_url: String, smtp_host: String, smtp_port: 
                                 let email_res = Message::builder()
                                     .from(from_addr)
                                     .to(to_addr)
-                                    .subject("Cleard - Your Verification Code")
+                                    .subject("YourApp - Your Verification Code")
                                     .body(format!(
                                         "Your verification code is: {}\n\nType: {}",
                                         event.verification_code, event.verification_type

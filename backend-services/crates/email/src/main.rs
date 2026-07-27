@@ -1,14 +1,14 @@
-//! Binary entry point for the Cleard email identity microservice.
+//! Binary entry point for the YourApp email identity microservice.
 //!
 //! Initializes environment configuration, runs database schema migrations, connects
 //! to the infrastructure dependencies, and boots the gRPC API server alongside the
 //! asynchronous background email worker.
 
-use cleard_contracts::email::v1::email_service_server::EmailServiceServer;
-use cleard_email::amqp::AmqpBroker;
-use cleard_email::repository::PostgresEmailRepository;
-use cleard_email::worker::start_email_worker;
-use cleard_email::CleardEmail;
+use your_app_contracts::email::v1::email_service_server::EmailServiceServer;
+use your_app_email::amqp::AmqpBroker;
+use your_app_email::repository::PostgresEmailRepository;
+use your_app_email::worker::start_email_worker;
+use your_app_email::YourAppEmail;
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -21,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Parse runtime parameters from the environment fallback defaults.
     let db_url = std::env::var("EMAIL_DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://postgres@localhost:5432/cleard_email".to_string());
+        .unwrap_or_else(|_| "postgres://postgres@localhost:5432/your_app_email".to_string());
     let amqp_url =
         std::env::var("EMAIL_AMQP_URL").unwrap_or_else(|_| "amqp://127.0.0.1:5672/%2f".to_string());
     let smtp_host = std::env::var("SMTP_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
@@ -57,7 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     start_email_worker(amqp_url, smtp_host, smtp_port).await;
 
     let repo = Arc::new(PostgresEmailRepository::new(pool));
-    let service = CleardEmail::new(repo, broker);
+    let service = YourAppEmail::new(repo, broker);
 
     let addr: SocketAddr = "0.0.0.0:50053".parse().unwrap();
     info!("Email gRPC Service listening on {}", addr);

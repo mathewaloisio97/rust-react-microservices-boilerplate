@@ -3,14 +3,14 @@
 //! Handles challenges and solution validations (e.g., reCAPTCHA, Turnstile)
 //! and issues signed cryptographic vouchers upon successful human verification.
 
-use cleard_constants::security::DEFAULT_HV_SECRET;
-use cleard_contracts::human_verification::v1::human_verification_service_server::HumanVerificationServiceServer;
-use cleard_human_verification::config::VerificationConfig;
-use cleard_human_verification::grpc::VerificationGrpcServer;
-use cleard_human_verification::providers::{
+use your_app_constants::security::DEFAULT_HV_SECRET;
+use your_app_contracts::human_verification::v1::human_verification_service_server::HumanVerificationServiceServer;
+use your_app_human_verification::config::VerificationConfig;
+use your_app_human_verification::grpc::VerificationGrpcServer;
+use your_app_human_verification::providers::{
     recaptcha::RecaptchaProvider, turnstile::TurnstileProvider,
 };
-use cleard_human_verification_crypto::CryptoEngine;
+use your_app_human_verification_crypto::CryptoEngine;
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -65,7 +65,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let addr: SocketAddr = "0.0.0.0:50055".parse().unwrap();
     info!(
-        "Cleard Human Verification gRPC Service actively listening on {}",
+        "YourApp Human Verification gRPC Service actively listening on {}",
         addr
     );
 

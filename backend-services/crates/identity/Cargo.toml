@@ -1,5 +1,5 @@
 [package]
-name = "cleard_identity"
+name = "your_app_identity"
 version = "0.1.0"
 edition = "2021"
 
@@ -19,4 +19,4 @@ argon2 = "0.5"
 jsonwebtoken = { workspace = true }
 reqwest = { workspace = true }
 
-cleard_contracts = { path = "../contracts" }
+your_app_contracts = { path = "../contracts" }

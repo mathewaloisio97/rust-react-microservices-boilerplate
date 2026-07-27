@@ -1,4 +1,4 @@
-name: Cleard CI
+name: YourApp CI
 
 on:
   push:

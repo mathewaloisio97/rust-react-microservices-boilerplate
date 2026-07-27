@@ -3,12 +3,12 @@
 //! Stores downstream clients and network connections in a thread-safe,
 //! immutable struct shared across all request handlers.
 
-use cleard_contracts::access_tokens::v1::access_tokens_service_client::AccessTokensServiceClient;
-use cleard_contracts::auth::v1::auth_service_client::AuthServiceClient;
-use cleard_contracts::email::v1::email_service_client::EmailServiceClient;
-use cleard_contracts::human_verification::v1::human_verification_service_client::HumanVerificationServiceClient;
-use cleard_contracts::identity::v1::identity_service_client::IdentityServiceClient;
-use cleard_human_verification_crypto::CryptoEngine;
+use your_app_contracts::access_tokens::v1::access_tokens_service_client::AccessTokensServiceClient;
+use your_app_contracts::auth::v1::auth_service_client::AuthServiceClient;
+use your_app_contracts::email::v1::email_service_client::EmailServiceClient;
+use your_app_contracts::human_verification::v1::human_verification_service_client::HumanVerificationServiceClient;
+use your_app_contracts::identity::v1::identity_service_client::IdentityServiceClient;
+use your_app_human_verification_crypto::CryptoEngine;
 use tonic::transport::Channel;
 
 /// Shared application state containing cloned gRPC service clients.

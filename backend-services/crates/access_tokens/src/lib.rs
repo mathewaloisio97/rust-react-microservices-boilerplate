@@ -7,12 +7,12 @@ pub mod jwt;
 
 use crate::jwt::{Claims, JwtManager};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
-use cleard_contracts::access_tokens::v1::access_tokens_service_server::AccessTokensService;
-use cleard_contracts::access_tokens::v1::{
+use your_app_contracts::access_tokens::v1::access_tokens_service_server::AccessTokensService;
+use your_app_contracts::access_tokens::v1::{
     GetPublicKeyRequest, GetPublicKeyResponse, IssueTokenRequest, IssueTokenResponse,
 };
-use cleard_contracts::auth::v1::auth_service_client::AuthServiceClient;
-use cleard_contracts::auth::v1::AuthenticateRequest;
+use your_app_contracts::auth::v1::auth_service_client::AuthServiceClient;
+use your_app_contracts::auth::v1::AuthenticateRequest;
 use sha2::{Digest, Sha256};
 use std::sync::Arc;
 use time::OffsetDateTime;
@@ -20,12 +20,12 @@ use tonic::{transport::Channel, Request, Response, Status};
 use tracing::{error, info, instrument};
 
 /// Implements the gRPC service responsible for validating sessions and issuing JWTs.
-pub struct CleardAccessTokens {
+pub struct YourAppAccessTokens {
     jwt_manager: Arc<JwtManager>,
     auth_client: AuthServiceClient<Channel>,
 }
 
-impl CleardAccessTokens {
+impl YourAppAccessTokens {
     /// Instantiates the service with its JWT signing manager and upstream Auth gRPC client.
     pub fn new(jwt_manager: Arc<JwtManager>, auth_client: AuthServiceClient<Channel>) -> Self {
         Self {
@@ -44,7 +44,7 @@ impl CleardAccessTokens {
 }
 
 #[tonic::async_trait]
-impl AccessTokensService for CleardAccessTokens {
+impl AccessTokensService for YourAppAccessTokens {
     #[instrument(skip(self, req))]
     async fn issue_token(
         &self,
@@ -92,7 +92,7 @@ impl AccessTokensService for CleardAccessTokens {
         let claims = Claims {
             sub: auth_res.user_id.clone(),
             sid: sid.clone(),
-            iss: "cleard_access_tokens".to_string(),
+            iss: "your_app_access_tokens".to_string(),
             iat: now.unix_timestamp() as usize,
             exp: exp.unix_timestamp() as usize,
             roles: inner.roles,

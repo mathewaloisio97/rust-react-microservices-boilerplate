@@ -1,5 +1,5 @@
 [package]
-name = "cleard_email"
+name = "your_app_email"
 version = "0.1.0"
 edition = "2021"
 
@@ -22,4 +22,4 @@ lapin = "4.10"
 futures-util = "0.3"
 lettre = { version = "0.11", default-features = false, features = ["tokio1", "builder", "smtp-transport"] }
 
-cleard_contracts = { path = "../contracts" }
+your_app_contracts = { path = "../contracts" }

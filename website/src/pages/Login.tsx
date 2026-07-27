@@ -40,8 +40,8 @@ export default function Login() {
    */
   const processSession = async (sessionToken: string) => {
     const jwtData = await api.mintAccessToken(sessionToken);
-    localStorage.setItem('cleard_session', sessionToken);
-    localStorage.setItem('cleard_jwt', jwtData.access_token);
+    localStorage.setItem('your_app_session', sessionToken);
+    localStorage.setItem('your_app_jwt', jwtData.access_token);
     navigate('/dashboard');
   };
 
@@ -106,7 +106,7 @@ export default function Login() {
 
   return (
     <div style={{ maxWidth: '400px', margin: '50px auto', fontFamily: 'sans-serif' }}>
-      <h1>Login to Cleard</h1>
+      <h1>Login to YourApp</h1>
       {location.state?.message && <p style={{ color: 'green' }}>{location.state.message}</p>}
       {error && <p style={{ color: 'red' }}>{error}</p>}
 

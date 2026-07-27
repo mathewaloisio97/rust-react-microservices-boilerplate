@@ -1,5 +1,5 @@
 [package]
-name = "cleard_human_verification"
+name = "your_app_human_verification"
 version = "0.1.0"
 edition = "2021"
 
@@ -17,6 +17,6 @@ serde_json = { workspace = true }
 async-trait = { workspace = true }
 reqwest = { workspace = true }
 
-cleard_constants = { path = "../constants" }
-cleard_contracts = { path = "../contracts" }
-cleard_human_verification_crypto = { path = "../human_verification_crypto" }
+your_app_constants = { path = "../constants" }
+your_app_contracts = { path = "../contracts" }
+your_app_human_verification_crypto = { path = "../human_verification_crypto" }

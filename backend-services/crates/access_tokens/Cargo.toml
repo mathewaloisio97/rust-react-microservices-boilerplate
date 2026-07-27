@@ -1,5 +1,5 @@
 [package]
-name = "cleard_access_tokens"
+name = "your_app_access_tokens"
 version = "0.1.0"
 edition = "2021"
 
@@ -25,4 +25,4 @@ base64 = { workspace = true }
 sha2 = { workspace = true }
 rand = { workspace = true }
 
-cleard_contracts = { path = "../contracts" }
+your_app_contracts = { path = "../contracts" }

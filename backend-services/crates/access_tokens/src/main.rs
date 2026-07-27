@@ -3,10 +3,10 @@
 //! Initializes the gRPC server infrastructure, establishes connections to the
 //! upstream authentication subsystem, and configures the RSA cryptographic engine.
 
-use cleard_access_tokens::jwt::JwtManager;
-use cleard_access_tokens::CleardAccessTokens;
-use cleard_contracts::access_tokens::v1::access_tokens_service_server::AccessTokensServiceServer;
-use cleard_contracts::auth::v1::auth_service_client::AuthServiceClient;
+use your_app_access_tokens::jwt::JwtManager;
+use your_app_access_tokens::YourAppAccessTokens;
+use your_app_contracts::access_tokens::v1::access_tokens_service_server::AccessTokensServiceServer;
+use your_app_contracts::auth::v1::auth_service_client::AuthServiceClient;
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Pass the environment key to the manager. If None, it will fall back to local-dev persistent generation.
     let jwt_manager = Arc::new(JwtManager::new(private_key_pem));
-    let service = CleardAccessTokens::new(jwt_manager, auth_client);
+    let service = YourAppAccessTokens::new(jwt_manager, auth_client);
 
     let addr: SocketAddr = server_addr.parse()?;
     info!("Access Tokens Issuance Service online at {}", addr);

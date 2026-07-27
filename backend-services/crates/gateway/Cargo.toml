@@ -1,5 +1,5 @@
 ﻿[package]
-name = "cleard_gateway"
+name = "your_app_gateway"
 version = "0.1.0"
 edition = "2021"
 
@@ -20,6 +20,6 @@ utoipa-swagger-ui = { workspace = true }
 
 tower-http = { version = "0.7", features = ["cors"] }
 
-cleard_constants = { path = "../constants" }
-cleard_contracts = { path = "../contracts" }
-cleard_human_verification_crypto = { path = "../human_verification_crypto" }
+your_app_constants = { path = "../constants" }
+your_app_contracts = { path = "../contracts" }
+your_app_human_verification_crypto = { path = "../human_verification_crypto" }

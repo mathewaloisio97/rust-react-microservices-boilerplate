@@ -40,8 +40,8 @@ export default function Register() {
    */
   const processSession = async (sessionToken: string) => {
     const jwtData = await api.mintAccessToken(sessionToken);
-    localStorage.setItem('cleard_session', sessionToken);
-    localStorage.setItem('cleard_jwt', jwtData.access_token);
+    localStorage.setItem('your_app_session', sessionToken);
+    localStorage.setItem('your_app_jwt', jwtData.access_token);
     navigate('/dashboard');
   };
 
@@ -109,7 +109,7 @@ export default function Register() {
 
   return (
     <div style={{ maxWidth: '400px', margin: '50px auto', fontFamily: 'sans-serif' }}>
-      <h1>Create Cleard Account</h1>
+      <h1>Create YourApp Account</h1>
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
       {TURNSTILE_SITE_KEY && (

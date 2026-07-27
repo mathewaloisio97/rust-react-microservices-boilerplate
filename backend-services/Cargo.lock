@@ -507,159 +507,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cleard_access_tokens"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64",
- "cleard_contracts",
- "jsonwebtoken",
- "pkcs8 0.11.0",
- "rand 0.10.2",
- "rsa 0.10.0-rc.18",
- "serde",
- "sha2 0.11.0",
- "thiserror",
- "time",
- "tokio",
- "tonic",
- "tracing",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
-name = "cleard_auth"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64",
- "cleard_contracts",
- "lapin",
- "rand 0.10.2",
- "serde",
- "serde_json",
- "sha2 0.11.0",
- "sqlx",
- "thiserror",
- "time",
- "tokio",
- "tonic",
- "tracing",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
-name = "cleard_constants"
-version = "0.1.0"
-
-[[package]]
-name = "cleard_contracts"
-version = "0.1.0"
-dependencies = [
- "glob",
- "prost",
- "serde",
- "tonic",
- "tonic-prost",
- "tonic-prost-build",
-]
-
-[[package]]
-name = "cleard_email"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "cleard_contracts",
- "futures-util",
- "lapin",
- "lettre",
- "rand 0.10.2",
- "serde",
- "serde_json",
- "sqlx",
- "thiserror",
- "time",
- "tokio",
- "tonic",
- "tracing",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
-name = "cleard_gateway"
-version = "0.1.0"
-dependencies = [
- "axum",
- "cleard_constants",
- "cleard_contracts",
- "cleard_human_verification_crypto",
- "serde",
- "serde_json",
- "tokio",
- "tonic",
- "tower-http 0.7.0",
- "tracing",
- "tracing-subscriber",
- "utoipa",
- "utoipa-swagger-ui",
-]
-
-[[package]]
-name = "cleard_human_verification"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "cleard_constants",
- "cleard_contracts",
- "cleard_human_verification_crypto",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
- "tonic",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "cleard_human_verification_crypto"
-version = "0.1.0"
-dependencies = [
- "base64",
- "hmac 0.13.0",
- "serde",
- "serde_json",
- "sha2 0.11.0",
-]
-
-[[package]]
-name = "cleard_identity"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "argon2",
- "async-trait",
- "cleard_contracts",
- "jsonwebtoken",
- "reqwest",
- "serde",
- "sqlx",
- "thiserror",
- "time",
- "tokio",
- "tonic",
- "tracing",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
 name = "cmake"
 version = "0.1.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4717,6 +4564,159 @@ dependencies = [
  "quote",
  "syn",
  "synstructure",
+]
+
+[[package]]
+name = "your_app_access_tokens"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64",
+ "jsonwebtoken",
+ "pkcs8 0.11.0",
+ "rand 0.10.2",
+ "rsa 0.10.0-rc.18",
+ "serde",
+ "sha2 0.11.0",
+ "thiserror",
+ "time",
+ "tokio",
+ "tonic",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "your_app_contracts",
+]
+
+[[package]]
+name = "your_app_auth"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64",
+ "lapin",
+ "rand 0.10.2",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "sqlx",
+ "thiserror",
+ "time",
+ "tokio",
+ "tonic",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "your_app_contracts",
+]
+
+[[package]]
+name = "your_app_constants"
+version = "0.1.0"
+
+[[package]]
+name = "your_app_contracts"
+version = "0.1.0"
+dependencies = [
+ "glob",
+ "prost",
+ "serde",
+ "tonic",
+ "tonic-prost",
+ "tonic-prost-build",
+]
+
+[[package]]
+name = "your_app_email"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "futures-util",
+ "lapin",
+ "lettre",
+ "rand 0.10.2",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "thiserror",
+ "time",
+ "tokio",
+ "tonic",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "your_app_contracts",
+]
+
+[[package]]
+name = "your_app_gateway"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tonic",
+ "tower-http 0.7.0",
+ "tracing",
+ "tracing-subscriber",
+ "utoipa",
+ "utoipa-swagger-ui",
+ "your_app_constants",
+ "your_app_contracts",
+ "your_app_human_verification_crypto",
+]
+
+[[package]]
+name = "your_app_human_verification"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tonic",
+ "tracing",
+ "tracing-subscriber",
+ "your_app_constants",
+ "your_app_contracts",
+ "your_app_human_verification_crypto",
+]
+
+[[package]]
+name = "your_app_human_verification_crypto"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "hmac 0.13.0",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+]
+
+[[package]]
+name = "your_app_identity"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "argon2",
+ "async-trait",
+ "jsonwebtoken",
+ "reqwest",
+ "serde",
+ "sqlx",
+ "thiserror",
+ "time",
+ "tokio",
+ "tonic",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "your_app_contracts",
 ]
 
 [[package]]

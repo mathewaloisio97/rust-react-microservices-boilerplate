@@ -13,8 +13,8 @@ pub mod repository;
 use crate::events::{EventPublisher, SessionRevokedEvent};
 use crate::repository::TokenRepository;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-use cleard_contracts::auth::v1::auth_service_server::AuthService;
-use cleard_contracts::auth::v1::{
+use your_app_contracts::auth::v1::auth_service_server::AuthService;
+use your_app_contracts::auth::v1::{
     AuthenticateRequest, AuthenticateResponse, CreateTokenRequest, CreateTokenResponse,
     RevokeTokenRequest, RevokeTokenResponse,
 };
@@ -26,7 +26,7 @@ use tracing::{error, info, instrument};
 use uuid::Uuid;
 
 /// Core service coordinate orchestrating the identity and session token lifecycle over gRPC.
-pub struct CleardAuth {
+pub struct YourAppAuth {
     /// Dispatched abstract data storage repository handling persistence operations.
     repo: Arc<dyn TokenRepository>,
 
@@ -34,7 +34,7 @@ pub struct CleardAuth {
     event_publisher: Arc<dyn EventPublisher>,
 }
 
-impl CleardAuth {
+impl YourAppAuth {
     /// Constructs a new gRPC service coordinator backed by a thread-safe repository variant.
     pub fn new(repo: Arc<dyn TokenRepository>, event_publisher: Arc<dyn EventPublisher>) -> Self {
         Self {
@@ -62,7 +62,7 @@ impl CleardAuth {
 }
 
 #[tonic::async_trait]
-impl AuthService for CleardAuth {
+impl AuthService for YourAppAuth {
     #[instrument(skip(self, req))]
     async fn authenticate(
         &self,

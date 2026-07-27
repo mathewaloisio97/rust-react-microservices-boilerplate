@@ -1,7 +1,7 @@
 ﻿services:
   postgres:
     image: postgres:17-alpine
-    container_name: cleard-postgres
+    container_name: your_app-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
@@ -19,7 +19,7 @@
 
   rabbitmq:
     image: rabbitmq:4-management-alpine
-    container_name: cleard-rabbitmq
+    container_name: your_app-rabbitmq
     restart: unless-stopped
     ports:
       - "5672:5672"   # AMQP protocol for Rust services
@@ -37,17 +37,17 @@
 
   mailpit:
     image: axllent/mailpit:latest
-    container_name: cleard-mailpit
+    container_name: your_app-mailpit
     restart: unless-stopped
     ports:
       - "8025:8025" # Web UI for viewing intercepted emails
-      - "1025:1025" # SMTP server for cleard_email worker
+      - "1025:1025" # SMTP server for your_app_email worker
 
   gateway:
     build: 
       context: ./backend-services
       dockerfile: Dockerfile
-    container_name: cleard-gateway
+    container_name: your_app-gateway
     restart: unless-stopped
     ports:
       - "3000:3000"

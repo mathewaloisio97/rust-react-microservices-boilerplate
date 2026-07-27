@@ -10,9 +10,9 @@ use crate::dtos::{
 };
 use crate::{error::handle_grpc_error, state::AppState};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use cleard_contracts::auth::v1::CreateTokenRequest;
-use cleard_contracts::email::v1::SetEmailRequest;
-use cleard_contracts::identity::v1::{LoginLocalRequest, OAuthLoginRequest, RegisterLocalRequest};
+use your_app_contracts::auth::v1::CreateTokenRequest;
+use your_app_contracts::email::v1::SetEmailRequest;
+use your_app_contracts::identity::v1::{LoginLocalRequest, OAuthLoginRequest, RegisterLocalRequest};
 use serde_json::json;
 
 /// Registers a new user account locally via email and password.

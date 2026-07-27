@@ -1,4 +1,4 @@
 [package]
-name = "cleard_constants"
+name = "your_app_constants"
 version = "0.1.0"
 edition = "2021"

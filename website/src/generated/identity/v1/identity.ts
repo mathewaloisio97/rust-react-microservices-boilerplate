@@ -30,7 +30,7 @@ export interface LoginLocalRequest {
 }
 
 export interface AuthResponse {
-  /** / The UUIDv7 representing the user's unique Cleard identifier. Empty if validation fails. */
+  /** / The UUIDv7 representing the user's unique YourApp identifier. Empty if validation fails. */
   userId: string;
   /** / True if the credentials or token were verified successfully. */
   valid: boolean;

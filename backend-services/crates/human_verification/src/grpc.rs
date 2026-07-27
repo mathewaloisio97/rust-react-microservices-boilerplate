@@ -3,11 +3,11 @@
 use crate::providers::{
     recaptcha::RecaptchaProvider, turnstile::TurnstileProvider, VerificationProvider,
 };
-use cleard_contracts::human_verification::v1::human_verification_service_server::HumanVerificationService;
-use cleard_contracts::human_verification::v1::{
+use your_app_contracts::human_verification::v1::human_verification_service_server::HumanVerificationService;
+use your_app_contracts::human_verification::v1::{
     GetChallengeRequest, GetChallengeResponse, VerifyRequest, VerifyResponse,
 };
-use cleard_human_verification_crypto::CryptoEngine;
+use your_app_human_verification_crypto::CryptoEngine;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use tracing::{error, info};

@@ -11,7 +11,7 @@ use axum::{
     middleware::Next,
     Json,
 };
-use cleard_contracts::auth::v1::AuthenticateRequest;
+use your_app_contracts::auth::v1::AuthenticateRequest;
 use serde_json::json;
 use tracing::{error, info};
 

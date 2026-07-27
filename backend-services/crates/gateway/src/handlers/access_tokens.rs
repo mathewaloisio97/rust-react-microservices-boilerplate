@@ -15,7 +15,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use cleard_contracts::access_tokens::v1::{GetPublicKeyRequest, IssueTokenRequest};
+use your_app_contracts::access_tokens::v1::{GetPublicKeyRequest, IssueTokenRequest};
 
 #[utoipa::path(
     post,

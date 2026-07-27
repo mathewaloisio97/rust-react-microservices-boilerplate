@@ -37,7 +37,7 @@ message LoginLocalRequest {
 }
 
 message AuthResponse {
-  /// The UUIDv7 representing the user's unique Cleard identifier. Empty if validation fails.
+  /// The UUIDv7 representing the user's unique YourApp identifier. Empty if validation fails.
   string user_id = 1;
 
   /// True if the credentials or token were verified successfully.

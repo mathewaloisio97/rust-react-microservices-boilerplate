@@ -12,13 +12,13 @@ use axum::http::HeaderValue;
 
 use axum::http::{header, Method};
 use axum::Router;
-use cleard_constants::security::DEFAULT_HV_SECRET;
-use cleard_contracts::access_tokens::v1::access_tokens_service_client::AccessTokensServiceClient;
-use cleard_contracts::auth::v1::auth_service_client::AuthServiceClient;
-use cleard_contracts::email::v1::email_service_client::EmailServiceClient;
-use cleard_contracts::human_verification::v1::human_verification_service_client::HumanVerificationServiceClient;
-use cleard_contracts::identity::v1::identity_service_client::IdentityServiceClient;
-use cleard_gateway::{dtos, handlers, routes, state::AppState};
+use your_app_constants::security::DEFAULT_HV_SECRET;
+use your_app_contracts::access_tokens::v1::access_tokens_service_client::AccessTokensServiceClient;
+use your_app_contracts::auth::v1::auth_service_client::AuthServiceClient;
+use your_app_contracts::email::v1::email_service_client::EmailServiceClient;
+use your_app_contracts::human_verification::v1::human_verification_service_client::HumanVerificationServiceClient;
+use your_app_contracts::identity::v1::identity_service_client::IdentityServiceClient;
+use your_app_gateway::{dtos, handlers, routes, state::AppState};
 use std::env;
 use std::net::SocketAddr;
 use tonic::transport::Channel;
@@ -81,7 +81,7 @@ impl Modify for SecurityAddon {
         dtos::GetPublicKeyResponse
     )),
     modifiers(&SecurityAddon),
-    tags((name = "Cleard Edge Gateway", description = "Cleard REST API"))
+    tags((name = "YourApp Edge Gateway", description = "YourApp REST API"))
 )]
 struct ApiDoc;
 
@@ -151,7 +151,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let access_tokens_channel = Channel::from_shared(access_tokens_url)?.connect_lazy();
 
     // Initialize the stateless cryptography engine for validating Captcha vouchers at the edge.
-    let crypto_engine = cleard_human_verification_crypto::CryptoEngine::new(hv_secret.as_bytes());
+    let crypto_engine = your_app_human_verification_crypto::CryptoEngine::new(hv_secret.as_bytes());
 
     // Package clients into a single state structure to share with web route handlers.
     let state = AppState {

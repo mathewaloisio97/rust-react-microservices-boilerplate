@@ -15,8 +15,8 @@ use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
-use cleard_contracts::identity::v1::identity_service_server::IdentityService;
-use cleard_contracts::identity::v1::{
+use your_app_contracts::identity::v1::identity_service_server::IdentityService;
+use your_app_contracts::identity::v1::{
     AuthResponse, LoginLocalRequest, OAuthLoginRequest, RegisterLocalRequest,
     UpdateLocalEmailRequest, UpdateLocalEmailResponse,
 };
@@ -26,12 +26,12 @@ use tracing::{error, info, instrument};
 use uuid::Uuid;
 
 /// Orchestrates user authentication and registration workflows.
-pub struct CleardIdentity {
+pub struct YourAppIdentity {
     repo: Arc<dyn UserRepository>,
     oauth_registry: Arc<OAuthRegistry>,
 }
 
-impl CleardIdentity {
+impl YourAppIdentity {
     /// Constructs a new service instance with injected dependencies.
     pub fn new(repo: Arc<dyn UserRepository>, oauth_registry: Arc<OAuthRegistry>) -> Self {
         Self {
@@ -42,7 +42,7 @@ impl CleardIdentity {
 }
 
 #[tonic::async_trait]
-impl IdentityService for CleardIdentity {
+impl IdentityService for YourAppIdentity {
     #[instrument(skip(self, req))]
     async fn o_auth_login(
         &self,

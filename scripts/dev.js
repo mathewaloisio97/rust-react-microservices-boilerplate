@@ -12,16 +12,16 @@ const COLORS = [
 ];
 
 const services = [
-  { name: 'Gateway', cmd: 'cargo run --bin cleard_gateway --features local-dev', cwd: './backend-services' },
-  { name: 'Identity', cmd: 'cargo run --bin cleard_identity --features local-dev', cwd: './backend-services' },
-  { name: 'Auth', cmd: 'cargo run --bin cleard_auth --features local-dev', cwd: './backend-services' },
-  { name: 'Email', cmd: 'cargo run --bin cleard_email --features local-dev', cwd: './backend-services' },
-  { name: 'Verification', cmd: 'cargo run --bin cleard_human_verification --features local-dev', cwd: './backend-services' },
-  { name: 'Tokens', cmd: 'cargo run --bin cleard_access_tokens --features local-dev', cwd: './backend-services' },
+  { name: 'Gateway', cmd: 'cargo run --bin your_app_gateway --features local-dev', cwd: './backend-services' },
+  { name: 'Identity', cmd: 'cargo run --bin your_app_identity --features local-dev', cwd: './backend-services' },
+  { name: 'Auth', cmd: 'cargo run --bin your_app_auth --features local-dev', cwd: './backend-services' },
+  { name: 'Email', cmd: 'cargo run --bin your_app_email --features local-dev', cwd: './backend-services' },
+  { name: 'Verification', cmd: 'cargo run --bin your_app_human_verification --features local-dev', cwd: './backend-services' },
+  { name: 'Tokens', cmd: 'cargo run --bin your_app_access_tokens --features local-dev', cwd: './backend-services' },
   { name: 'React', cmd: 'pnpm dev --mode development', cwd: './website' },
 ];
 
-console.log('🚀 Booting Cleard Local Development Cluster...\n');
+console.log('🚀 Booting YourApp Local Development Cluster...\n');
 
 const children = [];
 

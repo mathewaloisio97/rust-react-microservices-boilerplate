@@ -4,10 +4,10 @@
 //! relational database connection pool, applies outstanding schema migrations, and binds
 //! the compiled gRPC transport layer to the network interface socket.
 
-use cleard_auth::amqp::AmqpEventPublisher;
-use cleard_auth::repository::PostgresTokenRepository;
-use cleard_auth::CleardAuth;
-use cleard_contracts::auth::v1::auth_service_server::AuthServiceServer;
+use your_app_auth::amqp::AmqpEventPublisher;
+use your_app_auth::repository::PostgresTokenRepository;
+use your_app_auth::YourAppAuth;
+use your_app_contracts::auth::v1::auth_service_server::AuthServiceServer;
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -26,7 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Pull database target URI from system environment variables or fallback to local baseline defaults.
     let db_url = std::env::var("AUTH_DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://postgres@localhost:5432/cleard_auth".to_string());
+        .unwrap_or_else(|_| "postgres://postgres@localhost:5432/your_app_auth".to_string());
 
     // Pull AMQP target URI from system environment variables or fallback to local baseline defaults.
     let amqp_url =
@@ -61,7 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Instanciate thread-safe abstract database access object layers.
     let repo = Arc::new(PostgresTokenRepository::new(pool));
-    let service = CleardAuth::new(repo, event_publisher);
+    let service = YourAppAuth::new(repo, event_publisher);
 
     // Bind and resolve the listener interface address.
     let addr: SocketAddr = "0.0.0.0:50052".parse().unwrap();

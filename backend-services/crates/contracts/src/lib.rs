@@ -1,4 +1,4 @@
-//! Shared API contract definitions for the Cleard ecosystem.
+//! Shared API contract definitions for the YourApp ecosystem.
 //!
 //! Consolidates all auto-generated Protobuf modules and gRPC client/server
 //! stubs into a unified assembly to eliminate cross-domain circular dependencies.

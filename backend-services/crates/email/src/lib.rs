@@ -11,8 +11,8 @@ pub mod repository;
 pub mod worker;
 
 use crate::{amqp::AmqpBroker, events::EmailDispatchEvent, repository::EmailRepository};
-use cleard_contracts::email::v1::email_service_server::EmailService;
-use cleard_contracts::email::v1::{
+use your_app_contracts::email::v1::email_service_server::EmailService;
+use your_app_contracts::email::v1::{
     GetEmailRequest, GetEmailResponse, SetEmailRequest, SetEmailResponse, VerifyEmailRequest,
     VerifyEmailResponse,
 };
@@ -23,12 +23,12 @@ use tracing::{error, info, instrument};
 use uuid::Uuid;
 
 /// Implements the gRPC service for managing user email state and confirmation lifecycles.
-pub struct CleardEmail {
+pub struct YourAppEmail {
     repo: Arc<dyn EmailRepository>,
     broker: Arc<AmqpBroker>,
 }
 
-impl CleardEmail {
+impl YourAppEmail {
     /// Creates a new service instance wrapped with its storage and messaging infrastructure dependencies.
     pub fn new(repo: Arc<dyn EmailRepository>, broker: Arc<AmqpBroker>) -> Self {
         Self { repo, broker }
@@ -41,7 +41,7 @@ impl CleardEmail {
 }
 
 #[tonic::async_trait]
-impl EmailService for CleardEmail {
+impl EmailService for YourAppEmail {
     #[instrument(skip(self))]
     async fn get_email(
         &self,

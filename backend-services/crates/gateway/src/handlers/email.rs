@@ -19,8 +19,8 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use cleard_contracts::email::v1::{GetEmailRequest, SetEmailRequest, VerifyEmailRequest};
-use cleard_contracts::identity::v1::UpdateLocalEmailRequest;
+use your_app_contracts::email::v1::{GetEmailRequest, SetEmailRequest, VerifyEmailRequest};
+use your_app_contracts::identity::v1::UpdateLocalEmailRequest;
 use serde_json::json;
 
 /// Retrieves the current email resource state for an authenticated user.
