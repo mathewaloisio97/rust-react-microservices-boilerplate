@@ -1,14 +1,14 @@
-# Cleard Online — Project Blueprint & System Architecture
+# Enterprise Rust Microservices & Auth Boilerplate
 
-This repository contains the source code for **Cleard**, a distributed learning management system (LMS) and certification management software consisting of a decoupled **Rust backend cluster** and **TypeScript / React frontends**.
+This repository provides a production-ready, distributed systems template consisting of a decoupled **Rust backend cluster** and a **TypeScript / React frontend**.
 
-The project utilizes a centralized Protobuf pipeline to handle contract generation. This keeps the TypeScript clients and Rust backend microservices perfectly in sync to prevent API breaking changes.
+Designed as a foundational starter kit for SaaS, E-commerce, and Enterprise Web platforms, the project utilizes a centralized Protobuf pipeline to handle contract generation. This keeps the TypeScript clients and Rust backend microservices perfectly in sync to prevent API breaking changes.
 
 ---
 
 ## Key Technologies & Architecture
 
-The Cleard LMS is built on a high-performance, secure-by-default technology stack:
+This boilerplate is built on a high-performance, secure-by-default technology stack:
 
 * **Frontend:** React 19, TypeScript, Vite, and React Router.
 * **Backend:** Rust, Axum (HTTP Edge Gateway), and Tonic (Internal gRPC communication).
@@ -26,13 +26,13 @@ The Cleard LMS is built on a high-performance, secure-by-default technology stac
 ## Repository Architecture
 
 ```text
-cleard-project/
+project-root/
 ├── .github/workflows/      # CI/CD pipelines enforcing offline validation and testing
 ├── backend-services/       # Rust microservice workspace (Identity, Gateway, Auth, etc.)
 ├── contracts/              # Central source of truth for all network schemas (.proto)
 ├── docker/                 # Infrastructure provisioning scripts (e.g., Postgres initialization)
 ├── scripts/                # Utility scripts (e.g., local development cluster multiplexer)
-├── website/                # React Frontend for the Cleard LMS portal
+├── website/                # React Frontend for the web portal
 ├── .editorconfig           # Enforces unified cross-platform formatting rules
 ├── .env.example            # Master runtime configuration template
 ├── docker-compose.yml      # Local development infrastructure definition
@@ -45,7 +45,7 @@ cleard-project/
 To guarantee parity between local development machines and GitHub Actions / GitLab CI, the Rust backend enforces **SQLx Offline Mode** via `.cargo/config.toml`. Running a standard compilation (`cargo check` or `cargo build`) requires zero running infrastructure. Database schemas are validated against committed `.sqlx` cache directories, ensuring rapid, deterministic builds.
 
 ### Passwordless Local Development
-The local PostgreSQL infrastructure utilizes `POSTGRES_HOST_AUTH_METHOD=trust`. This explicitly bypasses password authentication for localized Docker connections. This architectural decision permanently eliminates dummy credentials (e.g., `cleard_dev_pass`) from the repository's `.env` and `docker-compose.yml` files, preventing false-positive alerts from automated enterprise secret scanners.
+The local PostgreSQL infrastructure utilizes `POSTGRES_HOST_AUTH_METHOD=trust`. This explicitly bypasses password authentication for localized Docker connections. This architectural decision permanently eliminates dummy credentials (e.g., `dev_db_pass`) from the repository's `.env` and `docker-compose.yml` files, preventing false-positive alerts from automated enterprise secret scanners.
 
 ### Secure-by-Default Configuration
 To prevent the accidental deployment of unsecure development keys into production environments, the cryptographic engine enforces a strict fail-safe mechanism. The default execution path actively monitors for fallback development secrets at boot. If detected, the application will intentionally panic and crash. To utilize localized fallback keys (and official Turnstile/reCAPTCHA dummy testing keys), developers must explicitly authorize the execution by compiling with the `local-dev` feature flag, guaranteeing that production releases remain secure by design.
@@ -134,7 +134,7 @@ just db-clean
 ## Project & Contact Information
 
 * **Author:** Mathew Aloisio
-* **Project Purpose:** A core identity, authentication, and instructional platform tailored for a Learning Management System (LMS). Features include enterprise OAuth single sign-on, frictionless human verification, automated email pipelines, and secure JWT token issuance. Architecturally, the project demonstrates cross-runtime decoupling between a Rust backend and TypeScript React clients using automated gRPC/Protobuf contract workflows.
+* **Project Purpose:** A general-purpose, enterprise-grade identity and authentication foundation. Features include enterprise OAuth single sign-on, frictionless human verification, automated email pipelines, and secure JWT token issuance. Architecturally, the project demonstrates cross-runtime decoupling between a Rust backend and TypeScript React clients using automated gRPC/Protobuf contract workflows.
 
 ### Links
 * **Portfolio:** [mathewaloisio.com](https://mathewaloisio.com)
