@@ -4,7 +4,12 @@ set windows-shell := ["cmd.exe", "/c"]
 default:
     @just --list
 
-# Run the full validation pipeline locally. (Use `just ci local-dev` to allow dev secrets)
+# Database connection strings targeting host-mapped 127.0.0.1:5432
+IDENTITY_DB_URL := "postgres://postgres:postgres@127.0.0.1:5432/your_app_identity?sslmode=disable"
+AUTH_DB_URL := "postgres://postgres:postgres@127.0.0.1:5432/your_app_auth?sslmode=disable"
+EMAIL_DB_URL := "postgres://postgres:postgres@127.0.0.1:5432/your_app_email?sslmode=disable"
+
+# Run the full validation pipeline locally.
 ci mode="prod": check-contracts (check-rust mode) check-frontend
 
 # Auto-format all subsystems across the repository.
@@ -32,17 +37,23 @@ check-frontend:
 
 # --- Developer Database & SQLx Utilities ---
 
-# Spins up the database and ensures all schemas are migrated.
+# Spins up the infrastructure and waits reliably for PostgreSQL health.
 db-up:
     docker compose up -d postgres rabbitmq mailpit jaeger
-    @echo Waiting for infrastructure to boot...
-    timeout 3 >nul 2>&1 || ping -n 4 127.0.0.1 >nul
+    @echo Waiting for PostgreSQL to accept connections...
+    for /L %i in (1,1,30) do @(docker exec your_app-postgres pg_isready -U postgres >nul 2>&1 && (echo PostgreSQL is alive... && exit /b 0) || ping -n 2 127.0.0.1 >nul)
+    @echo Waiting for database engine to settle...
+    ping -n 3 127.0.0.1 >nul
+    @echo Ensuring databases exist...
+    cd backend-services/crates/identity && cargo sqlx database create --database-url {{ IDENTITY_DB_URL }}
+    cd backend-services/crates/auth && cargo sqlx database create --database-url {{ AUTH_DB_URL }}
+    cd backend-services/crates/email && cargo sqlx database create --database-url {{ EMAIL_DB_URL }}
     @echo Running Identity Migrations...
-    cd backend-services/crates/identity && cargo sqlx migrate run
+    cd backend-services/crates/identity && cargo sqlx migrate run --database-url {{ IDENTITY_DB_URL }}
     @echo Running Auth Migrations...
-    cd backend-services/crates/auth && cargo sqlx migrate run
+    cd backend-services/crates/auth && cargo sqlx migrate run --database-url {{ AUTH_DB_URL }}
     @echo Running Email Migrations...
-    cd backend-services/crates/email && cargo sqlx migrate run
+    cd backend-services/crates/email && cargo sqlx migrate run --database-url {{ EMAIL_DB_URL }}
 
 # Gracefully stops all infrastructure containers without deleting volume data.
 db-down:
@@ -52,20 +63,19 @@ db-down:
 # Updates the .sqlx offline caches for all microservices, then stops the DB.
 db-prepare: db-up
     @echo Preparing offline cache for Identity...
-    cd backend-services/crates/identity && cargo sqlx prepare
+    cd backend-services/crates/identity && cargo sqlx prepare --database-url {{ IDENTITY_DB_URL }}
     @echo Preparing offline cache for Auth...
-    cd backend-services/crates/auth && cargo sqlx prepare
+    cd backend-services/crates/auth && cargo sqlx prepare --database-url {{ AUTH_DB_URL }}
     @echo Preparing offline cache for Email...
-    cd backend-services/crates/email && cargo sqlx prepare
+    cd backend-services/crates/email && cargo sqlx prepare --database-url {{ EMAIL_DB_URL }}
     @echo Stopping infrastructure...
     just db-down
     @echo SUCCESS: Offline caches updated. You can now commit the .sqlx folders!
 
-# Destroys the database volume entirely (Useful if initialization scripts change).
+# Destroys the database volume entirely.
 db-clean:
     docker compose down -v
-    
-# Boots the infrastructure and runs the entire backend cluster + frontend concurrently
+
+# Boots infrastructure and runs full stack concurrently.
 dev: db-up
     node --env-file=.env scripts/dev.js
-

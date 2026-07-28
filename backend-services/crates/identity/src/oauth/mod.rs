@@ -8,6 +8,7 @@ pub mod oidc;
 
 use self::facebook::FacebookProvider;
 use self::oidc::OidcProvider;
+use std::env;
 use std::sync::Arc;
 use tracing::{info, warn};
 
@@ -22,7 +23,7 @@ impl OAuthRegistry {
     /// Constructs the registry by reading configuration from environment variables.
     /// Providers missing required configuration will be explicitly disabled.
     pub fn from_env() -> Self {
-        let google = std::env::var("GOOGLE_CLIENT_ID").ok().map(|id| {
+        let google = env::var("GOOGLE_CLIENT_ID").ok().map(|id| {
             info!("OAuth: Google provider enabled.");
             Arc::new(OidcProvider::new(
                 id,
@@ -35,7 +36,7 @@ impl OAuthRegistry {
             warn!("OAuth: Google provider disabled (GOOGLE_CLIENT_ID not set).");
         }
 
-        let apple = std::env::var("APPLE_CLIENT_ID").ok().map(|id| {
+        let apple = env::var("APPLE_CLIENT_ID").ok().map(|id| {
             info!("OAuth: Apple provider enabled.");
             Arc::new(OidcProvider::new(
                 id,

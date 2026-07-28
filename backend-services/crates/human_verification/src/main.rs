@@ -71,7 +71,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         turnstile,
     };
 
-    let addr: SocketAddr = "0.0.0.0:50055".parse().unwrap();
+    let port = env::var("PORT").unwrap_or_else(|_| "50055".to_string());
+    let addr: SocketAddr = format!("0.0.0.0:{port}").parse()?;
     info!(
         "Human Verification gRPC Service actively listening on {}",
         addr

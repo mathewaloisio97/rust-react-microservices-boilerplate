@@ -1,43 +1,36 @@
 const { spawn } = require('child_process');
 
 const RESET = '\x1b[0m';
-const COLORS = [
-  '\x1b[36m', // Cyan     (Gateway)
-  '\x1b[32m', // Green    (Identity)
-  '\x1b[33m', // Yellow   (Auth)
-  '\x1b[35m', // Magenta  (Email)
-  '\x1b[34m', // Blue     (Human Verif)
-  '\x1b[90m', // Gray     (Access Tokens)
-  '\x1b[31m', // Red      (React)
-];
+const COLORS = {
+  docker: '\x1b[36m', // Cyan (Backend Docker Stack)
+  react: '\x1b[31m',  // Red  (React Frontend)
+};
 
-const services = [
-  { name: 'Gateway', cmd: 'cargo run --bin your_app_gateway --features local-dev', cwd: './backend-services' },
-  { name: 'Identity', cmd: 'cargo run --bin your_app_identity --features local-dev', cwd: './backend-services' },
-  { name: 'Auth', cmd: 'cargo run --bin your_app_auth --features local-dev', cwd: './backend-services' },
-  { name: 'Email', cmd: 'cargo run --bin your_app_email --features local-dev', cwd: './backend-services' },
-  { name: 'Verification', cmd: 'cargo run --bin your_app_human_verification --features local-dev', cwd: './backend-services' },
-  { name: 'Tokens', cmd: 'cargo run --bin your_app_access_tokens --features local-dev', cwd: './backend-services' },
-  { name: 'React', cmd: 'pnpm dev --mode development', cwd: './website' },
-];
+console.log('🚀 Booting YourApp Local Development Cluster (Docker + Vite)...\n');
 
-console.log('🚀 Booting YourApp Local Development Cluster...\n');
+// On Windows, use cmd.exe /c to run binaries/batch files cleanly without trigger-warning flags.
+const isWin = process.platform === 'win32';
 
-const children = [];
-
-services.forEach((service, index) => {
-  const color = COLORS[index % COLORS.length];
-  // Pad names so the console output aligns perfectly
-  const paddedName = service.name.padEnd(12, ' '); 
-  const prefix = `${color}[${paddedName}]${RESET} | `;
-
-  // Use shell: true to handle cross-platform execution (Windows cmd.exe compatibility)
-  const child = spawn(service.cmd, {
-    cwd: service.cwd,
-    shell: true,
-    stdio: ['ignore', 'pipe', 'pipe'] // Ignore stdin, pipe out/err so we can prefix lines
+const runCmd = (cmd, args, cwd = './') => {
+  if (isWin) {
+    return spawn('cmd.exe', ['/c', cmd, ...args], {
+      cwd,
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+  }
+  return spawn(cmd, args, {
+    cwd,
+    stdio: ['ignore', 'pipe', 'pipe']
   });
+};
 
+// 1. Start Docker Compose for the entire backend cluster.
+const docker = runCmd('docker', ['compose', 'up', '--build']);
+
+// 2. Start React development server.
+const react = runCmd('pnpm', ['dev', '--mode', 'development'], './website');
+
+const attachLogger = (child, prefix) => {
   const log = (data) => {
     const lines = data.toString().split('\n');
     lines.forEach(line => {
@@ -51,13 +44,18 @@ services.forEach((service, index) => {
   child.on('close', (code) => {
     console.log(`${prefix}Process exited with code ${code}`);
   });
+};
 
-  children.push(child);
-});
+attachLogger(docker, `${COLORS.docker}[Docker Backend]${RESET} | `);
+attachLogger(react, `${COLORS.react}[React Frontend]${RESET} | `);
 
-// Graceful shutdown: When you hit Ctrl+C, kill all child processes.
+// Graceful shutdown: When hitting Ctrl+C, shut down React and tear down Docker containers cleanly.
 process.on('SIGINT', () => {
   console.log('\n🛑 Shutting down cluster...');
-  children.forEach(child => child.kill());
-  process.exit();
+  react.kill();
+
+  const dockerDown = runCmd('docker', ['compose', 'down']);
+  dockerDown.on('close', () => {
+    process.exit();
+  });
 });

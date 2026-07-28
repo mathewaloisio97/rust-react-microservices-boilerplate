@@ -96,16 +96,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Ingest configuration from the environment, falling back to local dev defaults.
     let identity_url =
-        env::var("IDENTITY_URL").unwrap_or_else(|_| "http://localhost:50051".to_string());
-    let auth_url = env::var("AUTH_URL").unwrap_or_else(|_| "http://localhost:50052".to_string());
-    let hv_url =
-        env::var("HUMAN_VERIFICATION_URL").unwrap_or_else(|_| "http://localhost:50055".to_string());
+        env::var("IDENTITY_SERVICE_URL").unwrap_or_else(|_| "http://localhost:50051".to_string());
+    let auth_url =
+        env::var("AUTH_SERVICE_URL").unwrap_or_else(|_| "http://localhost:50052".to_string());
+    let hv_url = env::var("HUMAN_VERIFICATION_SERVICE_URL")
+        .unwrap_or_else(|_| "http://localhost:50055".to_string());
     let hv_secret =
         env::var("HUMAN_VERIFICATION_SECRET").unwrap_or_else(|_| DEFAULT_HV_SECRET.to_string());
-    let email_url = env::var("EMAIL_URL").unwrap_or_else(|_| "http://localhost:50053".to_string());
-    let access_tokens_url =
-        env::var("ACCESS_TOKENS_URL").unwrap_or_else(|_| "http://localhost:50054".to_string());
-    let server_addr = env::var("SERVER_ADDR").unwrap_or_else(|_| "0.0.0.0:3000".to_string());
+    let email_url =
+        env::var("EMAIL_SERVICE_URL").unwrap_or_else(|_| "http://localhost:50053".to_string());
+    let access_tokens_url = env::var("ACCESS_TOKENS_SERVICE_URL")
+        .unwrap_or_else(|_| "http://localhost:50054".to_string());
+    let server_addr = env::var("GATEWAY_ADDRESS").unwrap_or_else(|_| "0.0.0.0:3000".to_string());
 
     // Verify the integrity of the cryptographic validation keys.
     if hv_secret == DEFAULT_HV_SECRET {

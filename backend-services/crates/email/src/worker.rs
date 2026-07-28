@@ -1,18 +1,27 @@
 //! Background worker for consuming and processing email dispatch events.
 //!
 //! Spawns a background task that listens to an AMQP queue, parses incoming
-//! dispatch events, and transmits outbound emails via SMTP.
+//! dispatch events, and transmits outbound emails via SMTP using Lettre.
 
 use crate::events::EmailDispatchEvent;
 use futures_util::stream::StreamExt;
 use lapin::{options::*, types::FieldTable, Connection, ConnectionProperties};
+use lettre::transport::smtp::authentication::Credentials;
 use lettre::{AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
 use tracing::{error, info, warn};
 
 /// Starts an asynchronous loop that consumes from the email dispatch queue and sends SMTP messages.
 ///
+/// Dynamically configures credentials if provided (production SMTP), or runs unauthenticated
+/// plain-text mode when credentials are omitted (local dev with Mailpit/MailHog).
 /// Automatically reconnects to AMQP if the network connection or consumer stream drops.
-pub async fn start_email_worker(amqp_url: String, smtp_host: String, smtp_port: u16) {
+pub async fn start_email_worker(
+    amqp_url: String,
+    smtp_host: String,
+    smtp_port: u16,
+    smtp_username: Option<String>,
+    smtp_password: Option<String>,
+) {
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
@@ -39,21 +48,32 @@ pub async fn start_email_worker(amqp_url: String, smtp_host: String, smtp_port: 
                 Err(_) => continue,
             };
 
-            let mailer = AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(smtp_host.clone())
-                .port(smtp_port)
-                .build();
+            // Construct the SMTP transport.
+            // `builder_dangerous` defaults to no TLS and no auth, perfectly suited for local dev (Mailpit).
+            // When username and password are provided in production, we attach credentials.
+            let mut builder =
+                AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(smtp_host.clone())
+                    .port(smtp_port);
 
-            info!("Email worker listening for events.");
+            if let (Some(user), Some(pass)) = (&smtp_username, &smtp_password) {
+                let creds = Credentials::new(user.clone(), pass.clone());
+                builder = builder.credentials(creds);
+            }
+
+            let mailer = builder.build();
+
+            info!("Email worker actively listening for AMQP dispatch events.");
 
             while let Some(delivery_opt) = consumer.next().await {
                 if let Ok(delivery) = delivery_opt {
                     if let Ok(event) = serde_json::from_slice::<EmailDispatchEvent>(&delivery.data)
                     {
-                        info!("Processing dispatch to {}", event.target_email);
+                        info!("Processing email dispatch to {}", event.target_email);
 
                         let from_addr = "YourApp <noreply@your_app.online>"
                             .parse::<lettre::message::Mailbox>()
                             .unwrap();
+
                         match event.target_email.parse::<lettre::message::Mailbox>() {
                             Ok(to_addr) => {
                                 let email_res = Message::builder()
@@ -71,7 +91,10 @@ pub async fn start_email_worker(amqp_url: String, smtp_host: String, smtp_port: 
                                             delivery.ack(BasicAckOptions::default()).await.ok();
                                         }
                                         Err(e) => {
-                                            error!("SMTP failure: {:?}. Re-queuing message.", e);
+                                            error!(
+                                                "SMTP delivery failure: {:?}. Re-queuing message.",
+                                                e
+                                            );
                                             delivery
                                                 .nack(BasicNackOptions {
                                                     requeue: true,
@@ -107,7 +130,7 @@ pub async fn start_email_worker(amqp_url: String, smtp_host: String, smtp_port: 
                     }
                 }
             }
-            warn!("AMQP consumer stream closed. Reconnecting...");
+            warn!("AMQP consumer stream closed. Attempting reconnect...");
         }
     });
 }

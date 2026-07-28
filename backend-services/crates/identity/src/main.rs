@@ -5,6 +5,7 @@
 //! and binds the gRPC interface.
 
 use sqlx::postgres::PgPoolOptions;
+use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tonic::transport::Server;
@@ -22,7 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::env::var("OTLP_ENDPOINT").unwrap_or_else(|_| "http://localhost:4317".to_string());
     your_app_telemetry::init_telemetry("your_app_identity", &otlp_endpoint)?;
 
-    let db_url = std::env::var("IDENTITY_DATABASE_URL")
+    let db_url = env::var("IDENTITY_DATABASE_URL")
         .unwrap_or_else(|_| "postgres://postgres@localhost:5432/your_app_identity".to_string());
 
     let pool = PgPoolOptions::new()
@@ -40,7 +41,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let repo = Arc::new(PostgresUserRepository::new(pool));
     let service = YourAppIdentity::new(repo, oauth_registry);
 
-    let addr: SocketAddr = "0.0.0.0:50051".parse().unwrap();
+    let port = env::var("PORT").unwrap_or_else(|_| "50051".to_string());
+    let addr: SocketAddr = format!("0.0.0.0:{port}").parse()?;
     info!("Identity gRPC Service actively listening on {}", addr);
 
     Server::builder()

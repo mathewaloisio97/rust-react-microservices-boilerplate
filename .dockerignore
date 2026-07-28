@@ -1,0 +1,21 @@
+# Rust build artifacts
+target/
+**/target/
+
+# Node / Frontend artifacts
+node_modules/
+**/node_modules/
+.next/
+**/dist/
+
+# Git & System
+.git/
+**/.git/
+.gitignore
+.env*
+*.exe
+*.log
+
+# Vscode
+.vscode/
+**/.vscode/

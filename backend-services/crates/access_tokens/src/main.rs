@@ -21,12 +21,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::env::var("OTLP_ENDPOINT").unwrap_or_else(|_| "http://localhost:4317".to_string());
     your_app_telemetry::init_telemetry("your_app_access_tokens", &otlp_endpoint)?;
 
-    let auth_url = env::var("AUTH_URL").unwrap_or_else(|_| "http://localhost:50052".to_string());
-    let server_addr =
-        env::var("ACCESS_TOKENS_ADDR").unwrap_or_else(|_| "0.0.0.0:50054".to_string());
+    let auth_url = env::var("AUTH_SERVICE_URL").unwrap_or_else(|_| "http://localhost:50052".to_string());
 
     // Read the primary signing key from the environment.
-    let private_key_pem = env::var("JWT_PRIVATE_KEY_PEM").ok();
+    let private_key_pem = env::var("ACCESS_TOKENS_PRIVATE_KEY_PEM").ok();
 
     // Establish an instrumented channel to the upstream Auth subsystem.
     // This ensures outgoing gRPC requests automatically inject active trace contexts.
@@ -38,7 +36,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let jwt_manager = Arc::new(JwtManager::new(private_key_pem));
     let service = YourAppAccessTokens::new(jwt_manager, auth_client);
 
-    let addr: SocketAddr = server_addr.parse()?;
+    let port = env::var("PORT").unwrap_or_else(|_| "50054".to_string());
+    let addr: SocketAddr = format!("0.0.0.0:{port}").parse()?;
     info!("Access Tokens Issuance Service online at {}", addr);
 
     Server::builder()

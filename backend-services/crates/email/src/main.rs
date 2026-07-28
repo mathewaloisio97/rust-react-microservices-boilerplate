@@ -5,6 +5,7 @@
 //! asynchronous background email worker.
 
 use sqlx::postgres::PgPoolOptions;
+use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tonic::transport::Server;
@@ -23,16 +24,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::env::var("OTLP_ENDPOINT").unwrap_or_else(|_| "http://localhost:4317".to_string());
     your_app_telemetry::init_telemetry("your_app_email", &otlp_endpoint)?;
 
-    // Parse runtime parameters from the environment fallback defaults.
-    let db_url = std::env::var("EMAIL_DATABASE_URL")
+    // Parse runtime database and message queue parameters from environment fallbacks.
+    let db_url = env::var("EMAIL_DATABASE_URL")
         .unwrap_or_else(|_| "postgres://postgres@localhost:5432/your_app_email".to_string());
     let amqp_url =
         std::env::var("EMAIL_AMQP_URL").unwrap_or_else(|_| "amqp://127.0.0.1:5672/%2f".to_string());
-    let smtp_host = std::env::var("SMTP_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
-    let smtp_port: u16 = std::env::var("SMTP_PORT")
-        .unwrap_or_else(|_| "1025".to_string())
-        .parse()
-        .unwrap();
+
+    // Parse SMTP transport configuration with container-friendly fallbacks.
+    let smtp_host = env::var("SMTP_HOST").unwrap_or_else(|_| "mailpit".to_string());
+    let smtp_port: u16 = env::var("SMTP_PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(1025);
+
+    // Read optional SMTP credentials for production provider authentication.
+    let smtp_username = env::var("SMTP_USERNAME").ok();
+    let smtp_password = env::var("SMTP_PASSWORD").ok();
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
@@ -50,21 +57,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Err(e) => {
                 retries -= 1;
                 if retries == 0 {
-                    panic!("RabbitMQ Failed: {}", e);
+                    panic!("RabbitMQ Connection Failed: {}", e);
                 }
-                warn!("Waiting for RabbitMQ...");
+                warn!("Waiting for RabbitMQ instance to become healthy...");
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;
             }
         }
     };
 
-    info!("Starting background SMTP worker...");
-    start_email_worker(amqp_url, smtp_host, smtp_port).await;
+    info!(
+        "Starting background SMTP worker targeting {}:{}...",
+        smtp_host, smtp_port
+    );
+    start_email_worker(amqp_url, smtp_host, smtp_port, smtp_username, smtp_password).await;
 
     let repo = Arc::new(PostgresEmailRepository::new(pool));
     let service = YourAppEmail::new(repo, broker);
 
-    let addr: SocketAddr = "0.0.0.0:50053".parse().unwrap();
+    let port = env::var("PORT").unwrap_or_else(|_| "50053".to_string());
+    let addr: SocketAddr = format!("0.0.0.0:{port}").parse()?;
     info!("Email gRPC Service actively listening on {}", addr);
 
     Server::builder()

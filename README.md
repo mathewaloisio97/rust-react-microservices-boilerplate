@@ -79,10 +79,11 @@ npm install -g pnpm
 ```
 
 ### Step 2: Initialize the Environment
-Copy the example environment configuration to establish your local routing variables.
+Copy the example environment configuration(s) to establish your local routing variables.
 
 ```bash
 cp .env.example .env
+cp .env.prod.example .env.prod
 ```
 
 ### Step 3: Database Preparation & Caching

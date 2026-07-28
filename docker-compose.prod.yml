@@ -1,16 +1,14 @@
-﻿services:
+services:
   # ============================================================================
   # Infrastructure
   # ============================================================================
   postgres:
     image: postgres:17-alpine
-    container_name: your_app-postgres
+    container_name: your_app-postgres-prod
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_HOST_AUTH_METHOD: trust
-    ports:
-      - "5432:5432"
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -22,14 +20,11 @@
 
   rabbitmq:
     image: rabbitmq:4-management-alpine
-    container_name: your_app-rabbitmq
+    container_name: your_app-rabbitmq-prod
     restart: unless-stopped
-    ports:
-      - "5672:5672"
-      - "15672:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -38,41 +33,44 @@
       timeout: 5s
       retries: 5
 
-  mailpit:
-    image: axllent/mailpit:latest
-    container_name: your_app-mailpit
-    restart: unless-stopped
-    ports:
-      - "8025:8025"
-      - "1025:1025"
-    expose:
-      - "1025"
-
   jaeger:
     image: jaegertracing/all-in-one:latest
-    container_name: your_app-jaeger
+    container_name: your_app-jaeger-prod
     restart: unless-stopped
     environment:
       - COLLECTOR_OTLP_ENABLED=true
-    ports:
-      - "16686:16686" # Web UI
-      - "4317:4317"   # OTLP gRPC endpoint
     expose:
-      - "4317"
+      - "4317" # OTLP gRPC collector internal to bridge network
+    # Note: Ports are intentionally not exposed to the public host network. 
+    # Use an SSH tunnel (e.g. ssh -L 16686:localhost:16686) to view traces securely.
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: your_app-caddy-prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      gateway:
+        condition: service_started
+    command: caddy reverse-proxy --from api.your_app.online --to gateway:3000
 
   # ============================================================================
   # Rust Microservices
   # ============================================================================
   identity:
+    image: your_app-backend:latest
     build: 
       context: .
       dockerfile: ./backend-services/Dockerfile
-      args:
-        CARGO_FEATURES: "local-dev"
-    container_name: your_app-identity
+    container_name: your_app-identity-prod
     restart: unless-stopped
     command: ["./your_app_identity"]
-    env_file: .env
+    env_file: .env.prod
     expose:
       - "50051"
     depends_on:
@@ -80,15 +78,11 @@
         condition: service_healthy
 
   auth:
-    build: 
-      context: .
-      dockerfile: ./backend-services/Dockerfile
-      args:
-        CARGO_FEATURES: "local-dev"
-    container_name: your_app-auth
+    image: your_app-backend:latest
+    container_name: your_app-auth-prod
     restart: unless-stopped
     command: ["./your_app_auth"]
-    env_file: .env
+    env_file: .env.prod
     expose:
       - "50052"
     depends_on:
@@ -98,15 +92,11 @@
         condition: service_healthy
 
   email:
-    build: 
-      context: .
-      dockerfile: ./backend-services/Dockerfile
-      args:
-        CARGO_FEATURES: "local-dev"
-    container_name: your_app-email
+    image: your_app-backend:latest
+    container_name: your_app-email-prod
     restart: unless-stopped
     command: ["./your_app_email"]
-    env_file: .env
+    env_file: .env.prod
     expose:
       - "50053"
     depends_on:
@@ -114,50 +104,36 @@
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      mailpit:
-        condition: service_started
+
+  human_verification:
+    image: your_app-backend:latest
+    container_name: your_app-hv-prod
+    restart: unless-stopped
+    command: ["./your_app_human_verification"]
+    env_file: .env.prod
+    expose:
+      - "50055"
 
   access_tokens:
-    build: 
-      context: .
-      dockerfile: ./backend-services/Dockerfile
-      args:
-        CARGO_FEATURES: "local-dev"
-    container_name: your_app-tokens
+    image: your_app-backend:latest
+    container_name: your_app-tokens-prod
     restart: unless-stopped
     command: ["./your_app_access_tokens"]
-    env_file: .env
+    env_file: .env.prod
     expose:
       - "50054"
     depends_on:
       auth:
         condition: service_started
 
-  human_verification:
-    build: 
-      context: .
-      dockerfile: ./backend-services/Dockerfile
-      args:
-        CARGO_FEATURES: "local-dev"
-    container_name: your_app-hv
-    restart: unless-stopped
-    command: ["./your_app_human_verification"]
-    env_file: .env
-    expose:
-      - "50055"
-
   gateway:
-    build: 
-      context: .
-      dockerfile: ./backend-services/Dockerfile
-      args:
-        CARGO_FEATURES: "local-dev"
-    container_name: your_app-gateway
+    image: your_app-backend:latest
+    container_name: your_app-gateway-prod
     restart: unless-stopped
     command: ["./your_app_gateway"]
-    env_file: .env
-    ports:
-      - "3000:3000"
+    env_file: .env.prod
+    expose:
+      - "3000"
     depends_on:
       identity:
         condition: service_started
@@ -173,11 +149,11 @@
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      mailpit:
-        condition: service_started
       jaeger:
         condition: service_started
 
 volumes:
   pgdata:
   rabbitmq_data:
+  caddy_data:
+  caddy_config:

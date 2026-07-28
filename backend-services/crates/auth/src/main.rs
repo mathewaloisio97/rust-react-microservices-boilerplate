@@ -5,6 +5,7 @@
 //! the compiled gRPC transport layer to the network interface socket.
 
 use sqlx::postgres::PgPoolOptions;
+use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tonic::transport::Server;
@@ -27,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     your_app_telemetry::init_telemetry("your_app_auth", &otlp_endpoint)?;
 
     // Pull database target URI from system environment variables or fallback to local baseline defaults.
-    let db_url = std::env::var("AUTH_DATABASE_URL")
+    let db_url = env::var("AUTH_DATABASE_URL")
         .unwrap_or_else(|_| "postgres://postgres@localhost:5432/your_app_auth".to_string());
 
     // Pull AMQP target URI from system environment variables or fallback to local baseline defaults.
@@ -66,7 +67,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let service = YourAppAuth::new(repo, event_publisher);
 
     // Bind and resolve the listener interface address.
-    let addr: SocketAddr = "0.0.0.0:50052".parse().unwrap();
+    let port = env::var("PORT").unwrap_or_else(|_| "50052".to_string());
+    let addr: SocketAddr = format!("0.0.0.0:{port}").parse()?;
     info!("Auth gRPC Service actively listening on {}", addr);
 
     // Bootstrap and block the thread on the asynchronous Tonic gRPC server orchestrator.
