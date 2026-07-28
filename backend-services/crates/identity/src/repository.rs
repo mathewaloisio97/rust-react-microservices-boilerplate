@@ -4,7 +4,7 @@
 //! core identities, local credentials, and OAuth mappings.
 
 use crate::errors::IdentityError;
-use crate::models::{LocalCredential, OAuthLink};
+use crate::models::{AccessLevel, LocalCredential, OAuthLink, User, UserStatus};
 use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -12,12 +12,18 @@ use uuid::Uuid;
 /// Defines operational contracts for managing user accounts in persistent storage.
 #[async_trait]
 pub trait UserRepository: Send + Sync {
+    /// Retrieves a core user profile by its unique identifier.
+    async fn get_user(&self, user_id: Uuid) -> Result<Option<User>, IdentityError>;
+
     /// Provisions a new core user and their associated local credentials.
     async fn create_local_user(
         &self,
         email: &str,
         password_hash: &str,
     ) -> Result<Uuid, IdentityError>;
+
+    /// Transitions an account from PENDING to ACTIVE status.
+    async fn activate_user(&self, user_id: Uuid) -> Result<(), IdentityError>;
 
     /// Retrieves local credential data by exact email match.
     async fn get_local_credential(
@@ -56,7 +62,6 @@ impl PostgresUserRepository {
     }
 }
 
-/// Automates exponential backoff for transient database connection faults.
 macro_rules! with_retry {
     ($op:expr) => {{
         let mut retries = 3;
@@ -90,6 +95,19 @@ macro_rules! with_retry {
 
 #[async_trait]
 impl UserRepository for PostgresUserRepository {
+    #[tracing::instrument(skip(self))]
+    async fn get_user(&self, user_id: Uuid) -> Result<Option<User>, IdentityError> {
+        let record = with_retry!(sqlx::query_as!(
+            User,
+            r#"SELECT id, access_level as "access_level: AccessLevel", status as "status: UserStatus", created_at as "created_at: _" FROM users WHERE id = $1"#,
+            user_id
+        )
+        .fetch_optional(&self.pool))
+        .map_err(IdentityError::Database)?;
+
+        Ok(record)
+    }
+
     #[tracing::instrument(skip(self, password_hash))]
     async fn create_local_user(
         &self,
@@ -100,10 +118,14 @@ impl UserRepository for PostgresUserRepository {
 
         let mut tx = self.pool.begin().await.map_err(IdentityError::Database)?;
 
-        sqlx::query!("INSERT INTO users (id) VALUES ($1)", new_user_id)
-            .execute(&mut *tx)
-            .await
-            .map_err(IdentityError::Database)?;
+        // Local credentials start as PENDING until initial email validation.
+        sqlx::query!(
+            "INSERT INTO users (id, status) VALUES ($1, 'PENDING')",
+            new_user_id
+        )
+        .execute(&mut *tx)
+        .await
+        .map_err(IdentityError::Database)?;
 
         let result = sqlx::query!(
             "INSERT INTO local_credentials (user_id, email, password_hash) VALUES ($1, $2, $3)",
@@ -129,6 +151,18 @@ impl UserRepository for PostgresUserRepository {
                 Err(IdentityError::Database(e))
             }
         }
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn activate_user(&self, user_id: Uuid) -> Result<(), IdentityError> {
+        with_retry!(sqlx::query!(
+            "UPDATE users SET status = 'ACTIVE' WHERE id = $1 AND status = 'PENDING'",
+            user_id
+        )
+        .execute(&self.pool))
+        .map_err(IdentityError::Database)?;
+
+        Ok(())
     }
 
     #[tracing::instrument(skip(self))]
@@ -180,10 +214,14 @@ impl UserRepository for PostgresUserRepository {
 
         let mut tx = self.pool.begin().await.map_err(IdentityError::Database)?;
 
-        sqlx::query!("INSERT INTO users (id) VALUES ($1)", new_user_id)
-            .execute(&mut *tx)
-            .await
-            .map_err(IdentityError::Database)?;
+        // OAuth accounts start as ACTIVE because the identity provider inherently verified them.
+        sqlx::query!(
+            "INSERT INTO users (id, status) VALUES ($1, 'ACTIVE')",
+            new_user_id
+        )
+        .execute(&mut *tx)
+        .await
+        .map_err(IdentityError::Database)?;
 
         sqlx::query!(
             "INSERT INTO oauth_links (user_id, provider, provider_subject_id) VALUES ($1, $2, $3)",

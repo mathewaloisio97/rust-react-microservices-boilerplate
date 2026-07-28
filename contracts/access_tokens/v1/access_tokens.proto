@@ -25,6 +25,9 @@ message IssueTokenRequest {
 
   /// Requested token lifetime in seconds, bounded by server maximum policy.
   uint32 ttl_seconds = 3;
+
+  /// The user's administrative tier injected by the edge gateway.
+  string access_level = 4;
 }
 
 message IssueTokenResponse {

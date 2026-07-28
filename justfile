@@ -76,6 +76,10 @@ db-prepare: db-up
 db-clean:
     docker compose down -v
 
+# Complete reset: wipes DB volumes, applies fresh migrations, and re-prepares .sqlx
+db-rebuild: db-clean db-prepare
+
 # Boots infrastructure and runs full stack concurrently.
-dev: db-up
-    node --env-file=.env scripts/dev.js
+dev *args: db-up
+    node --env-file=.env scripts/dev.js {{args}}
+

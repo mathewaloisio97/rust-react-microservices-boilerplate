@@ -21,8 +21,9 @@ use tracing::{error, info, instrument};
 use uuid::Uuid;
 use your_app_contracts::identity::v1::identity_service_server::IdentityService;
 use your_app_contracts::identity::v1::{
-    AuthResponse, LoginLocalRequest, OAuthLoginRequest, RegisterLocalRequest,
-    UpdateLocalEmailRequest, UpdateLocalEmailResponse,
+    ActivateUserRequest, ActivateUserResponse, AuthResponse, GetUserRequest, GetUserResponse,
+    LoginLocalRequest, OAuthLoginRequest, RegisterLocalRequest, UpdateLocalEmailRequest,
+    UpdateLocalEmailResponse,
 };
 
 /// Orchestrates user authentication and registration workflows.
@@ -32,7 +33,6 @@ pub struct YourAppIdentity {
 }
 
 impl YourAppIdentity {
-    /// Constructs a new service instance with injected dependencies.
     pub fn new(repo: Arc<dyn UserRepository>, oauth_registry: Arc<OAuthRegistry>) -> Self {
         Self {
             repo,
@@ -43,6 +43,80 @@ impl YourAppIdentity {
 
 #[tonic::async_trait]
 impl IdentityService for YourAppIdentity {
+    #[instrument(skip(self, req))]
+    async fn get_user(
+        &self,
+        req: Request<GetUserRequest>,
+    ) -> Result<Response<GetUserResponse>, Status> {
+        let inner = req.into_inner();
+        let user_id = Uuid::parse_str(&inner.user_id)
+            .map_err(|_| Status::invalid_argument("Malformed UUID format for user_id"))?;
+
+        let user_opt = self.repo.get_user(user_id).await.map_err(|e| {
+            error!("Database fault during user retrieval: {:?}", e);
+            Status::internal("Internal database fault")
+        })?;
+
+        match user_opt {
+            Some(u) => {
+                let access_level = match u.access_level {
+                    crate::models::AccessLevel::Default => {
+                        your_app_contracts::identity::v1::AccessLevel::Default
+                    }
+                    crate::models::AccessLevel::Staff => {
+                        your_app_contracts::identity::v1::AccessLevel::Staff
+                    }
+                    crate::models::AccessLevel::Admin => {
+                        your_app_contracts::identity::v1::AccessLevel::Admin
+                    }
+                    crate::models::AccessLevel::SuperAdmin => {
+                        your_app_contracts::identity::v1::AccessLevel::SuperAdmin
+                    }
+                    crate::models::AccessLevel::System => {
+                        your_app_contracts::identity::v1::AccessLevel::System
+                    }
+                };
+
+                let status = match u.status {
+                    crate::models::UserStatus::Pending => {
+                        your_app_contracts::identity::v1::UserStatus::Pending
+                    }
+                    crate::models::UserStatus::Active => {
+                        your_app_contracts::identity::v1::UserStatus::Active
+                    }
+                    crate::models::UserStatus::Suspended => {
+                        your_app_contracts::identity::v1::UserStatus::Suspended
+                    }
+                };
+
+                Ok(Response::new(GetUserResponse {
+                    user_id: u.id.to_string(),
+                    access_level: access_level.into(),
+                    status: status.into(),
+                    created_at: u.created_at.to_string(),
+                }))
+            }
+            None => Err(Status::not_found("User not found")),
+        }
+    }
+
+    #[instrument(skip(self, req))]
+    async fn activate_user(
+        &self,
+        req: Request<ActivateUserRequest>,
+    ) -> Result<Response<ActivateUserResponse>, Status> {
+        let inner = req.into_inner();
+        let user_id = Uuid::parse_str(&inner.user_id)
+            .map_err(|_| Status::invalid_argument("Malformed UUID format for user_id"))?;
+
+        self.repo.activate_user(user_id).await.map_err(|e| {
+            error!("Database fault during user activation: {:?}", e);
+            Status::internal("Internal database fault")
+        })?;
+
+        Ok(Response::new(ActivateUserResponse { success: true }))
+    }
+
     #[instrument(skip(self, req))]
     async fn o_auth_login(
         &self,

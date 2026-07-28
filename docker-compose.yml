@@ -69,6 +69,7 @@
       dockerfile: ./backend-services/Dockerfile
       args:
         CARGO_FEATURES: "local-dev"
+    image: your_app-backend-workspace:latest
     container_name: your_app-identity
     restart: unless-stopped
     command: ["./your_app_identity"]
@@ -80,11 +81,7 @@
         condition: service_healthy
 
   auth:
-    build: 
-      context: .
-      dockerfile: ./backend-services/Dockerfile
-      args:
-        CARGO_FEATURES: "local-dev"
+    image: your_app-backend-workspace:latest
     container_name: your_app-auth
     restart: unless-stopped
     command: ["./your_app_auth"]
@@ -98,11 +95,7 @@
         condition: service_healthy
 
   email:
-    build: 
-      context: .
-      dockerfile: ./backend-services/Dockerfile
-      args:
-        CARGO_FEATURES: "local-dev"
+    image: your_app-backend-workspace:latest
     container_name: your_app-email
     restart: unless-stopped
     command: ["./your_app_email"]
@@ -118,11 +111,7 @@
         condition: service_started
 
   access_tokens:
-    build: 
-      context: .
-      dockerfile: ./backend-services/Dockerfile
-      args:
-        CARGO_FEATURES: "local-dev"
+    image: your_app-backend-workspace:latest
     container_name: your_app-tokens
     restart: unless-stopped
     command: ["./your_app_access_tokens"]
@@ -134,11 +123,7 @@
         condition: service_started
 
   human_verification:
-    build: 
-      context: .
-      dockerfile: ./backend-services/Dockerfile
-      args:
-        CARGO_FEATURES: "local-dev"
+    image: your_app-backend-workspace:latest
     container_name: your_app-hv
     restart: unless-stopped
     command: ["./your_app_human_verification"]
@@ -147,11 +132,7 @@
       - "50055"
 
   gateway:
-    build: 
-      context: .
-      dockerfile: ./backend-services/Dockerfile
-      args:
-        CARGO_FEATURES: "local-dev"
+    image: your_app-backend-workspace:latest
     container_name: your_app-gateway
     restart: unless-stopped
     command: ["./your_app_gateway"]

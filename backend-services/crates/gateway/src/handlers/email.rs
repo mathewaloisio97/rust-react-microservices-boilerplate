@@ -21,21 +21,8 @@ use axum::{
 };
 use serde_json::json;
 use your_app_contracts::email::v1::{GetEmailRequest, SetEmailRequest, VerifyEmailRequest};
-use your_app_contracts::identity::v1::UpdateLocalEmailRequest;
+use your_app_contracts::identity::v1::{ActivateUserRequest, UpdateLocalEmailRequest};
 
-/// Retrieves the current email resource state for an authenticated user.
-///
-/// Queries the email microservice using the authenticated user's ID extracted from the bearer token,
-/// returning configuration status, verification flags, and any pending update details.
-///
-/// # Arguments
-///
-/// * `state` - Shared application state container holding the email service gRPC client.
-/// * `user_id` - Authenticated user identifier extracted via middleware extension.
-///
-/// # Returns
-///
-/// An Axum response containing `200 OK` with the `EmailStateResponse` data or `401 Unauthorized`.
 #[utoipa::path(
     get,
     path = "/api/v1/email",
@@ -70,22 +57,6 @@ pub async fn get_email(
     }
 }
 
-/// Initiates an email resource transition or registration update for an authenticated user.
-///
-/// Validates the inbound email payload format, submits the change request down-funnel to the
-/// email service gRPC client, and triggers a challenge dispatch workflow. Requires a valid proof-of-humanity
-/// header (`x-captcha-voucher`) evaluated by security middleware.
-///
-/// # Arguments
-///
-/// * `state` - Shared application state container holding the email service client.
-/// * `user_id` - Authenticated user identifier extracted via middleware extension.
-/// * `payload` - JSON body containing the target `email` address.
-///
-/// # Returns
-///
-/// An Axum response containing `200 OK` with `SetEmailResponse`, `400 Bad Request` on malformed inputs,
-/// `401 Unauthorized`, or `403 Forbidden` if the captcha voucher is missing.
 #[utoipa::path(
     post,
     path = "/api/v1/email",
@@ -132,21 +103,6 @@ pub async fn set_email(
     }
 }
 
-/// Submits a challenge confirmation code to verify a pending email transition.
-///
-/// Evaluates the verification code against the email subsystem. Upon successful confirmation,
-/// synchronizes the finalized email update back to the core identity microservice.
-///
-/// # Arguments
-///
-/// * `state` - Shared application state container holding email and identity service clients.
-/// * `user_id` - Authenticated user identifier extracted via middleware extension.
-/// * `payload` - JSON body containing the submitted challenge `code`.
-///
-/// # Returns
-///
-/// An Axum response containing `200 OK` with `VerifyEmailResponse` on success, `400 Bad Request`
-/// for invalid or expired challenge codes, or `401 Unauthorized`.
 #[utoipa::path(
     post,
     path = "/api/v1/email/verify",
@@ -181,6 +137,15 @@ pub async fn verify_email(
         Ok(res) => {
             let inner = res.into_inner();
             if inner.success {
+                // Activate the user, satisfying the Pending -> Active state machine requirement
+                let activate_req = tonic::Request::new(ActivateUserRequest {
+                    user_id: user_id.0.clone(),
+                });
+
+                if let Err(e) = state.identity_client.activate_user(activate_req).await {
+                    tracing::error!("Failed to activate user post-verification: {:?}", e);
+                }
+
                 // Synchronize finalized email changes back to the identity subsystem.
                 if !inner.email_updated_to.is_empty() {
                     let update_req = tonic::Request::new(UpdateLocalEmailRequest {

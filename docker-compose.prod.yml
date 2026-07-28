@@ -5,13 +5,12 @@ services:
   postgres:
     image: postgres:17-alpine
     container_name: your_app-postgres-prod
-    restart: unless-stopped
+    restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -21,7 +20,7 @@ services:
   rabbitmq:
     image: rabbitmq:4-management-alpine
     container_name: your_app-rabbitmq-prod
-    restart: unless-stopped
+    restart: always
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
@@ -41,8 +40,6 @@ services:
       - COLLECTOR_OTLP_ENABLED=true
     expose:
       - "4317" # OTLP gRPC collector internal to bridge network
-    # Note: Ports are intentionally not exposed to the public host network. 
-    # Use an SSH tunnel (e.g. ssh -L 16686:localhost:16686) to view traces securely.
 
   caddy:
     image: caddy:2-alpine
@@ -56,7 +53,7 @@ services:
       - caddy_config:/config
     depends_on:
       gateway:
-        condition: service_started
+        condition: service_started # Safely gates traffic initialization.
     command: caddy reverse-proxy --from api.your_app.online --to gateway:3000
 
   # ============================================================================
@@ -79,6 +76,7 @@ services:
 
   auth:
     image: your_app-backend:latest
+    pull_policy: build # Prevents Docker Hub pull errors on production servers.
     container_name: your_app-auth-prod
     restart: unless-stopped
     command: ["./your_app_auth"]
@@ -93,6 +91,7 @@ services:
 
   email:
     image: your_app-backend:latest
+    pull_policy: build # Prevents Docker Hub pull errors on production servers.
     container_name: your_app-email-prod
     restart: unless-stopped
     command: ["./your_app_email"]
@@ -107,6 +106,7 @@ services:
 
   human_verification:
     image: your_app-backend:latest
+    pull_policy: build # Prevents Docker Hub pull errors on production servers.
     container_name: your_app-hv-prod
     restart: unless-stopped
     command: ["./your_app_human_verification"]
@@ -116,6 +116,7 @@ services:
 
   access_tokens:
     image: your_app-backend:latest
+    pull_policy: build # Prevents Docker Hub pull errors on production servers.
     container_name: your_app-tokens-prod
     restart: unless-stopped
     command: ["./your_app_access_tokens"]
@@ -128,6 +129,7 @@ services:
 
   gateway:
     image: your_app-backend:latest
+    pull_policy: build # Prevents Docker Hub pull errors on production servers.
     container_name: your_app-gateway-prod
     restart: unless-stopped
     command: ["./your_app_gateway"]

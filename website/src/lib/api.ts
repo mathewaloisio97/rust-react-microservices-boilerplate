@@ -38,7 +38,20 @@ export const api = {
       },
       body: JSON.stringify({ roles: ['user'], ttl_seconds: 900 }),
     });
-    if (!res.ok) throw new Error('Failed to mint access token');
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+
+      // Intercept suspended accounts: revoke the session immediately and cascade the error
+      // so the frontend router can catch it and redirect to a suspension notice page.
+      if (errorData.error === 'ACCOUNT_SUSPENDED') {
+        await this.logout(sessionToken).catch(() => {});
+        throw new Error('ACCOUNT_SUSPENDED');
+      }
+
+      throw new Error('Failed to mint access token');
+    }
+
     return res.json();
   },
 

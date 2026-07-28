@@ -8,11 +8,35 @@
 use time::OffsetDateTime;
 use uuid::Uuid;
 
+/// Represents the authorization boundary and administrative privileges of a user.
+#[derive(Debug, Clone, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "access_level", rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum AccessLevel {
+    Default,
+    Staff,
+    Admin,
+    SuperAdmin,
+    System,
+}
+
+/// Represents the operational state and accessibility of the user's account.
+#[derive(Debug, Clone, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "user_status", rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum UserStatus {
+    Pending,
+    Active,
+    Suspended,
+}
+
 /// Represents a persistently stored core user entity.
 #[derive(Debug, Clone)]
 pub struct User {
     /// The globally unique identifier for the user (UUIDv7).
     pub id: Uuid,
+    /// The hierarchical role or tier granted to the user.
+    pub access_level: AccessLevel,
+    /// The lifecycle state of the user account.
+    pub status: UserStatus,
     /// The timestamp when the user account was originally created.
     pub created_at: OffsetDateTime,
 }
@@ -20,25 +44,17 @@ pub struct User {
 /// Represents a user's traditional email and password credentials.
 #[derive(Debug, Clone)]
 pub struct LocalCredential {
-    /// The unique identifier of the user these credentials belong to.
     pub user_id: Uuid,
-    /// The unique email address used for login and account communication.
     pub email: String,
-    /// The Argon2id representation of the user's password.
     pub password_hash: String,
-    /// The timestamp when these credentials were created.
     pub created_at: OffsetDateTime,
 }
 
 /// Represents a linked third-party identity.
 #[derive(Debug, Clone)]
 pub struct OAuthLink {
-    /// The unique identifier of the user linked to this external identity.
     pub user_id: Uuid,
-    /// The name of the third-party identity provider (e.g., "google", "github").
     pub provider: String,
-    /// The unique subject identifier provided by the third-party authentication service.
     pub provider_subject_id: String,
-    /// The timestamp when the third-party account was linked.
     pub created_at: OffsetDateTime,
 }

@@ -21,7 +21,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::env::var("OTLP_ENDPOINT").unwrap_or_else(|_| "http://localhost:4317".to_string());
     your_app_telemetry::init_telemetry("your_app_access_tokens", &otlp_endpoint)?;
 
-    let auth_url = env::var("AUTH_SERVICE_URL").unwrap_or_else(|_| "http://localhost:50052".to_string());
+    let auth_url =
+        env::var("AUTH_SERVICE_URL").unwrap_or_else(|_| "http://localhost:50052".to_string());
 
     // Read the primary signing key from the environment.
     let private_key_pem = env::var("ACCESS_TOKENS_PRIVATE_KEY_PEM").ok();

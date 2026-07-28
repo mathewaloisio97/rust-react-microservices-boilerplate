@@ -14,6 +14,7 @@ use axum::{
 use serde_json::json;
 use tracing::{error, info};
 use your_app_contracts::auth::v1::AuthenticateRequest;
+use your_app_contracts::identity::v1::{AccessLevel, GetUserRequest, UserStatus};
 
 /// Extracted user identifier injected into request extensions upon successful auth.
 #[derive(Clone, Debug)]
@@ -23,12 +24,11 @@ pub struct UserId(pub String);
 #[derive(Clone)]
 pub struct SessionToken(pub String);
 
+/// Extracted administrative tier injected into request extensions for JWT generation.
+#[derive(Clone, Debug)]
+pub struct UserAccessLevel(pub String);
+
 /// Protects routes by validating Bearer tokens against the Auth microservice.
-///
-/// Extracts the token from the `Authorization` header, validates it via an
-/// upstream gRPC call, and attaches the resulting `UserId` and `SessionToken`
-/// to the request extensions. Missing, malformed, or rejected tokens short-circuit
-/// the request with an HTTP 401 Unauthorized status.
 pub async fn auth_middleware(
     State(state): State<AppState>,
     mut req: Request,
@@ -60,11 +60,10 @@ pub async fn auth_middleware(
         token: token.clone(),
     });
 
-    let mut client = state.auth_client.clone();
-    let res = match client.authenticate(grpc_req).await {
+    let mut auth_client = state.auth_client.clone();
+    let res = match auth_client.authenticate(grpc_req).await {
         Ok(r) => r.into_inner(),
         Err(e) => {
-            // Log internal network/gRPC faults securely but return a generic 401 to the client.
             error!("Gateway Auth: Upstream gRPC communication fault: {:?}", e);
             return Err((
                 StatusCode::UNAUTHORIZED,
@@ -81,9 +80,53 @@ pub async fn auth_middleware(
         ));
     }
 
-    // Inject verified contextual data for downstream route handlers.
+    // Fetch User Identity to retrieve authoritative Access Level and Status
+    let user_req = tonic::Request::new(GetUserRequest {
+        user_id: res.user_id.clone(),
+    });
+
+    let mut id_client = state.identity_client.clone();
+    let user_res = match id_client.get_user(user_req).await {
+        Ok(r) => r.into_inner(),
+        Err(e) => {
+            error!(
+                "Gateway Auth: Failed to fetch user profile from Identity: {:?}",
+                e
+            );
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": "Failed to resolve identity profile"})),
+            ));
+        }
+    };
+
+    // Block all protected routes if the account is suspended, EXCEPT the logout route.
+    if user_res.status == UserStatus::Suspended as i32 && req.uri().path() != "/api/v1/logout" {
+        info!(
+            "Gateway Auth: Request rejected for suspended user {}",
+            res.user_id
+        );
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(json!({
+                "error": "ACCOUNT_SUSPENDED",
+                "message": "Your account has been suspended."
+            })),
+        ));
+    }
+
+    let access_level_str = match user_res.access_level {
+        x if x == AccessLevel::Staff as i32 => "STAFF",
+        x if x == AccessLevel::Admin as i32 => "ADMIN",
+        x if x == AccessLevel::SuperAdmin as i32 => "SUPER_ADMIN",
+        x if x == AccessLevel::System as i32 => "SYSTEM",
+        _ => "DEFAULT",
+    };
+
     req.extensions_mut().insert(UserId(res.user_id));
     req.extensions_mut().insert(SessionToken(token));
+    req.extensions_mut()
+        .insert(UserAccessLevel(access_level_str.to_string()));
 
     Ok(next.run(req).await)
 }

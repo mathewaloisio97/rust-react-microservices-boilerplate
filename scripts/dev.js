@@ -8,6 +8,9 @@ const COLORS = {
 
 console.log('🚀 Booting YourApp Local Development Cluster (Docker + Vite)...\n');
 
+// Check if the user explicitly wants to force a Docker image build
+const forceBuild = process.argv.includes('--build');
+
 // On Windows, use cmd.exe /c to run binaries/batch files cleanly without trigger-warning flags.
 const isWin = process.platform === 'win32';
 
@@ -25,7 +28,9 @@ const runCmd = (cmd, args, cwd = './') => {
 };
 
 // 1. Start Docker Compose for the entire backend cluster.
-const docker = runCmd('docker', ['compose', 'up', '--build']);
+// If --build argument is present, force build; otherwise, allow default fast startup.
+const dockerArgs = forceBuild ? ['compose', 'up', '--build'] : ['compose', 'up'];
+const docker = runCmd('docker', dockerArgs);
 
 // 2. Start React development server.
 const react = runCmd('pnpm', ['dev', '--mode', 'development'], './website');

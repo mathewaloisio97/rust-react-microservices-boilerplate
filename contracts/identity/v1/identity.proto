@@ -16,13 +16,37 @@ service IdentityService {
 
   /// Updates the email address associated with local credentials.
   rpc UpdateLocalEmail(UpdateLocalEmailRequest) returns (UpdateLocalEmailResponse);
+
+  /// Retrieves a user's core identity profile, status, and access level.
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+
+  /// Transitions a user from PENDING to ACTIVE.
+  rpc ActivateUser(ActivateUserRequest) returns (ActivateUserResponse);
+}
+
+/// Represents the authorization boundary and administrative privileges of a user.
+enum AccessLevel {
+  ACCESS_LEVEL_DEFAULT = 0;
+  ACCESS_LEVEL_STAFF = 1;
+  ACCESS_LEVEL_ADMIN = 2;
+  ACCESS_LEVEL_SUPER_ADMIN = 3;
+  ACCESS_LEVEL_SYSTEM = 4;
+}
+
+/// Represents the operational state and accessibility of the user's account.
+enum UserStatus {
+  /// Account created but pending initial verification (e.g., email confirmation).
+  USER_STATUS_PENDING = 0;
+  
+  /// Normal operating status.
+  USER_STATUS_ACTIVE = 1;
+  
+  /// Explicitly blocked from accessing gateway-protected endpoints.
+  USER_STATUS_SUSPENDED = 2;
 }
 
 message OAuthLoginRequest {
-  /// The identity provider (e.g., 'google', 'apple', 'facebook').
   string provider = 1;
-
-  /// The OIDC identity token or access token provided by the client's login flow.
   string id_token = 2;
 }
 
@@ -37,22 +61,34 @@ message LoginLocalRequest {
 }
 
 message AuthResponse {
-  /// The UUIDv7 representing the user's unique YourApp identifier. Empty if validation fails.
   string user_id = 1;
-
-  /// True if the credentials or token were verified successfully.
   bool valid = 2;
 }
 
 message UpdateLocalEmailRequest {
-  /// The unique UUIDv7 identifier of the user.
   string user_id = 1;
-
-  /// The new email address to bind to the local credential record.
   string new_email = 2;
 }
 
 message UpdateLocalEmailResponse {
-  /// True if the email update was committed successfully.
+  bool success = 1;
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message GetUserResponse {
+  string user_id = 1;
+  AccessLevel access_level = 2;
+  UserStatus status = 3;
+  string created_at = 4;
+}
+
+message ActivateUserRequest {
+  string user_id = 1;
+}
+
+message ActivateUserResponse {
   bool success = 1;
 }

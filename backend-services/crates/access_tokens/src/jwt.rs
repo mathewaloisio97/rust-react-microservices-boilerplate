@@ -34,6 +34,9 @@ pub struct Claims {
 
     /// List of assigned permission roles or scopes.
     pub roles: Vec<String>,
+
+    /// The administrative access level granted to the user.
+    pub access_level: String,
 }
 
 /// Cryptographic manager responsible for loading RSA keys and issuing signed JWTs.

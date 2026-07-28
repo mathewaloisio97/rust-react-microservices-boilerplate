@@ -6,7 +6,7 @@
 use crate::{
     dtos::{GetPublicKeyResponse, IssueTokenPayload, IssueTokenResponse},
     error::handle_grpc_error,
-    middleware::SessionToken,
+    middleware::{SessionToken, UserAccessLevel},
     state::AppState,
 };
 use axum::{
@@ -28,12 +28,14 @@ use your_app_contracts::access_tokens::v1::{GetPublicKeyRequest, IssueTokenReque
 pub async fn issue_token(
     State(mut state): State<AppState>,
     Extension(token): Extension<SessionToken>,
+    Extension(access_level): Extension<UserAccessLevel>,
     Json(payload): Json<IssueTokenPayload>,
 ) -> impl IntoResponse {
     let req = tonic::Request::new(IssueTokenRequest {
         session_token: token.0,
         roles: payload.roles,
         ttl_seconds: payload.ttl_seconds,
+        access_level: access_level.0,
     });
 
     // Forward the token issuance request to the underlying gRPC microservice.
