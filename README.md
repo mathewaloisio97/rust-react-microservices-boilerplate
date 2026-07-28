@@ -19,6 +19,8 @@ This boilerplate is built on a high-performance, secure-by-default technology st
   * **Enterprise SSO:** Built-in OAuth integration (Google, Apple, Facebook) via OIDC cryptographic verification and Graph API introspection.
   * **Local Credentials:** Traditional email/password fallback utilizing Argon2id hashing.
   * **Session Management:** Opaque stateful session tokens exchanged for stateless, short-lived JSON Web Tokens (JWTs) via RS256 asymmetric signing.
+  * **Hierarchical RBAC:** Fine-grained Role-Based Access Control utilizing structured `AccessLevel` claims mapped straight into the stateless JWT payload context to secure downstream microservice RPC layers.
+  * **Identity Lifecycle Automation:** A robust `UserStatus` state machine managing container accounts seamlessly through strict states (`PENDING`, `ACTIVE`, `SUSPENDED`).
 * **Bot Protection:** Seamless human verification integrated at the edge, supporting both **Cloudflare Turnstile** and **Google reCAPTCHA (v2/v3/Enterprise)**.
 * **Local Development Tools:** Mailpit (local SMTP sink for intercepting verification emails) and a custom Node.js multiplexer for concurrent cluster booting.
 
