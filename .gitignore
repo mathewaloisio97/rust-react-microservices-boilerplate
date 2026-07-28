@@ -29,6 +29,11 @@ __pycache__/
 backend-services/.dev_jwt_private_key.pem
 
 # =========================
+# Ignore generated TypeScript
+# =========================
+website/src/generated/
+
+# =========================
 # React / Node (Website)
 # =========================
 /website/node_modules/
