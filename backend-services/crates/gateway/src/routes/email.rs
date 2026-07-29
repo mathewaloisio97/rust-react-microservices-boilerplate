@@ -23,18 +23,24 @@ pub fn build_router(state: AppState) -> Router {
             captcha_middleware,
         ));
 
-    // Define standard routes that only need user authentication.
-    let auth_protected = Router::new()
-        .route("/api/v1/email", get(email::get_email))
-        .route("/api/v1/email/verify", post(email::verify_email));
+    // Standard read-only route that only needs user authentication.
+    let auth_protected = Router::new().route("/api/v1/email", get(email::get_email));
 
-    // Combine them and apply the auth middleware globally over this router.
-    Router::new()
+    // Completely public route mapping to atomic URL link clicks from inboxes.
+    let public_verification =
+        Router::new().route("/api/v1/email/verify", post(email::verify_email));
+
+    // Combine authenticated routers and apply the auth middleware globally over them.
+    let auth_router = Router::new()
         .merge(captcha_protected)
         .merge(auth_protected)
         .route_layer(axum_middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
-        ))
+        ));
+
+    Router::new()
+        .merge(auth_router)
+        .merge(public_verification)
         .with_state(state)
 }

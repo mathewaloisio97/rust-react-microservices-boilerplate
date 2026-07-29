@@ -14,6 +14,10 @@ use tokio::sync::RwLock;
 struct OidcClaims {
     /// Unique subject identifier assigned by the identity provider.
     sub: String,
+    /// Email address passed in the ID token claims.
+    email: Option<String>,
+    /// Verification flag asserted by the OIDC provider.
+    email_verified: Option<bool>,
 }
 
 /// JSON Web Key (JWK) representing a public RSA key used for signature verification.
@@ -81,8 +85,8 @@ impl OidcProvider {
         Ok(())
     }
 
-    /// Verifies the JWT signature, audience, and issuer, extracting the subject claim.
-    pub async fn verify(&self, token: &str) -> Result<String, anyhow::Error> {
+    /// Verifies the JWT signature, audience, and issuer, extracting the subject claim, email, and email_verified status.
+    pub async fn verify(&self, token: &str) -> Result<(String, String, bool), anyhow::Error> {
         let header = decode_header(token)?;
         let kid = header
             .kid
@@ -110,6 +114,13 @@ impl OidcProvider {
         validation.set_issuer(&[&self.issuer]);
 
         let token_data = decode::<OidcClaims>(token, decoding_key, &validation)?;
-        Ok(token_data.claims.sub)
+
+        let email = token_data
+            .claims
+            .email
+            .ok_or_else(|| anyhow::anyhow!("OIDC token missing 'email' claim"))?;
+        let email_verified = token_data.claims.email_verified.unwrap_or(false);
+
+        Ok((token_data.claims.sub, email, email_verified))
     }
 }

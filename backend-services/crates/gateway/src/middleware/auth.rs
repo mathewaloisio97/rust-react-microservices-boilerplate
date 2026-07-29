@@ -14,7 +14,7 @@ use axum::{
 use serde_json::json;
 use tracing::{error, info};
 use your_app_contracts::auth::v1::AuthenticateRequest;
-use your_app_contracts::identity::v1::{AccessLevel, GetUserRequest, UserStatus};
+use your_app_contracts::identity::v1::{GetUserRequest, UserStatus};
 
 /// Extracted user identifier injected into request extensions upon successful auth.
 #[derive(Clone, Debug)]
@@ -23,10 +23,6 @@ pub struct UserId(pub String);
 /// Verified raw session token injected into request extensions for downstream use.
 #[derive(Clone)]
 pub struct SessionToken(pub String);
-
-/// Extracted administrative tier injected into request extensions for JWT generation.
-#[derive(Clone, Debug)]
-pub struct UserAccessLevel(pub String);
 
 /// Protects routes by validating Bearer tokens against the Auth microservice.
 pub async fn auth_middleware(
@@ -80,7 +76,7 @@ pub async fn auth_middleware(
         ));
     }
 
-    // Fetch User Identity to retrieve authoritative Access Level and Status
+    // Fetch User Identity to retrieve authoritative lifecycle Status
     let user_req = tonic::Request::new(GetUserRequest {
         user_id: res.user_id.clone(),
     });
@@ -100,8 +96,10 @@ pub async fn auth_middleware(
         }
     };
 
+    let path = req.uri().path();
+
     // Block all protected routes if the account is suspended, EXCEPT the logout route.
-    if user_res.status == UserStatus::Suspended as i32 && req.uri().path() != "/api/v1/logout" {
+    if user_res.status == UserStatus::Suspended as i32 && path != "/api/v1/logout" {
         info!(
             "Gateway Auth: Request rejected for suspended user {}",
             res.user_id
@@ -115,18 +113,26 @@ pub async fn auth_middleware(
         ));
     }
 
-    let access_level_str = match user_res.access_level {
-        x if x == AccessLevel::Staff as i32 => "STAFF",
-        x if x == AccessLevel::Admin as i32 => "ADMIN",
-        x if x == AccessLevel::SuperAdmin as i32 => "SUPER_ADMIN",
-        x if x == AccessLevel::System as i32 => "SYSTEM",
-        _ => "DEFAULT",
-    };
+    // Restrict unverified squatter accounts to only email modifications or session revocation.
+    if user_res.status == UserStatus::Pending as i32
+        && !path.starts_with("/api/v1/email")
+        && path != "/api/v1/logout"
+    {
+        info!(
+            "Gateway Auth: Request rejected for unverified user {}",
+            res.user_id
+        );
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(json!({
+                "error": "ACCOUNT_UNVERIFIED",
+                "message": "Please verify your email address to access this feature."
+            })),
+        ));
+    }
 
     req.extensions_mut().insert(UserId(res.user_id));
     req.extensions_mut().insert(SessionToken(token));
-    req.extensions_mut()
-        .insert(UserAccessLevel(access_level_str.to_string()));
 
     Ok(next.run(req).await)
 }

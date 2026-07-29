@@ -33,6 +33,7 @@ use your_app_contracts::human_verification::v1::{GetChallengeRequest, VerifyRequ
 #[utoipa::path(
     get,
     path = "/api/v1/captcha/request",
+    tag = "Human Verification",
     params(ChallengeQuery),
     responses(
         (status = 200, description = "Challenge payload generated")
@@ -76,6 +77,7 @@ pub async fn get_challenge(
 #[utoipa::path(
     post,
     path = "/api/v1/captcha/verify",
+    tag = "Human Verification",
     request_body = ClientVerifyPayload,
     responses(
         (status = 200, description = "Verification passed, voucher issued"),

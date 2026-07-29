@@ -2,13 +2,13 @@ stages:
   - validate
 
 variables:
-  # Enable offline SQLx compilation
   SQLX_OFFLINE: "true"
+  CARGO_REGISTRIES_CRATES_IO_PROTOCOL: "sparse"
+  CARGO_NET_GIT_FETCH_WITH_CLI: "true"
 
-# --- Contracts & React Web Portal ---
 frontend-and-contracts:
   stage: validate
-  image: node:24-bullseye
+  image: node:24-slim
   cache:
     key:
       files:
@@ -16,34 +16,37 @@ frontend-and-contracts:
     paths:
       - website/.pnpm-store
   before_script:
-    - apt-get update && apt-get install -y protobuf-compiler python3 python-is-python3 curl
-    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
-    - npm install -g pnpm
-    - pnpm config set store-dir .pnpm-store
+    - export PATH="$HOME/.local/bin:$PATH"
+    - corepack enable
+    - apt-get update && apt-get install -y --no-install-recommends protobuf-compiler python3 python-is-python3 curl ca-certificates && rm -rf /var/lib/apt/lists/*
+    - mkdir -p ~/.local/bin && curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/.local/bin
+    - pnpm config set store-dir website/.pnpm-store
   script:
+    - cd website && pnpm install --frozen-lockfile && cd ..
     - just check-contracts
     - just check-frontend
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-# --- Rust Backend Services ---
 rust-backend:
   stage: validate
-  image: rust:latest
+  image: rust:1.97-slim
   cache:
-    key:
-      files:
-        - backend-services/Cargo.lock
+    key: "rust-$CI_COMMIT_REF_SLUG"
     paths:
-      - backend-services/target
-      - /usr/local/cargo/registry
+      - backend-services/target/
+      - /usr/local/cargo/registry/index/
+      - /usr/local/cargo/registry/cache/
+      - /usr/local/cargo/git/db/
   before_script:
-    - apt-get update && apt-get install -y protobuf-compiler curl
-    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+    - export PATH="$HOME/.local/bin:$PATH"
+    - apt-get update && apt-get install -y --no-install-recommends protobuf-compiler curl ca-certificates && rm -rf /var/lib/apt/lists/*
+    - mkdir -p ~/.local/bin && curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/.local/bin
     - rustup component add rustfmt clippy
   script:
     - just check-rust
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+ 

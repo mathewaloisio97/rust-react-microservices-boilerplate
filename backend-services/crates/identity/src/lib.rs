@@ -22,8 +22,8 @@ use uuid::Uuid;
 use your_app_contracts::identity::v1::identity_service_server::IdentityService;
 use your_app_contracts::identity::v1::{
     ActivateUserRequest, ActivateUserResponse, AuthResponse, GetUserRequest, GetUserResponse,
-    LoginLocalRequest, OAuthLoginRequest, RegisterLocalRequest, UpdateLocalEmailRequest,
-    UpdateLocalEmailResponse,
+    LoginLocalRequest, OAuthLoginRequest, OAuthLoginResponse, RegisterLocalRequest,
+    UpdateLocalEmailRequest, UpdateLocalEmailResponse,
 };
 
 /// Orchestrates user authentication and registration workflows.
@@ -59,24 +59,6 @@ impl IdentityService for YourAppIdentity {
 
         match user_opt {
             Some(u) => {
-                let access_level = match u.access_level {
-                    crate::models::AccessLevel::Default => {
-                        your_app_contracts::identity::v1::AccessLevel::Default
-                    }
-                    crate::models::AccessLevel::Staff => {
-                        your_app_contracts::identity::v1::AccessLevel::Staff
-                    }
-                    crate::models::AccessLevel::Admin => {
-                        your_app_contracts::identity::v1::AccessLevel::Admin
-                    }
-                    crate::models::AccessLevel::SuperAdmin => {
-                        your_app_contracts::identity::v1::AccessLevel::SuperAdmin
-                    }
-                    crate::models::AccessLevel::System => {
-                        your_app_contracts::identity::v1::AccessLevel::System
-                    }
-                };
-
                 let status = match u.status {
                     crate::models::UserStatus::Pending => {
                         your_app_contracts::identity::v1::UserStatus::Pending
@@ -91,9 +73,9 @@ impl IdentityService for YourAppIdentity {
 
                 Ok(Response::new(GetUserResponse {
                     user_id: u.id.to_string(),
-                    access_level: access_level.into(),
                     status: status.into(),
                     created_at: u.created_at.to_string(),
+                    credential_provider: u.credential_provider,
                 }))
             }
             None => Err(Status::not_found("User not found")),
@@ -121,45 +103,54 @@ impl IdentityService for YourAppIdentity {
     async fn o_auth_login(
         &self,
         req: Request<OAuthLoginRequest>,
-    ) -> Result<Response<AuthResponse>, Status> {
+    ) -> Result<Response<OAuthLoginResponse>, Status> {
         let inner = req.into_inner();
-        let provider = inner.provider;
-        let id_token = inner.id_token;
 
-        let verified_subject_id = match self.oauth_registry.verify_token(&provider, &id_token).await
+        let (verified_subject_id, email, email_verified) = match self
+            .oauth_registry
+            .verify_token(&inner.provider, &inner.id_token)
+            .await
         {
-            Ok(subject) => subject,
+            Ok(data) => data,
             Err(e) => {
-                error!("OAuth Verification Failed [{}]: {}", provider, e);
-                return Err(Status::unauthenticated("Invalid or rejected OAuth token"));
+                error!("OAuth Verification Failed [{}]: {}", inner.provider, e);
+                return Err(Status::unauthenticated(
+                    "Invalid or rejected OAuth token. Email may be missing.",
+                ));
             }
         };
 
-        info!(provider = %provider, "Processing OAuth authentication");
+        info!(provider = %inner.provider, "Processing OAuth authentication");
 
         match self
             .repo
-            .get_oauth_link(&provider, &verified_subject_id)
+            .get_oauth_link(&inner.provider, &verified_subject_id)
             .await
         {
-            Ok(Some(link)) => Ok(Response::new(AuthResponse {
+            Ok(Some(link)) => Ok(Response::new(OAuthLoginResponse {
                 user_id: link.user_id.to_string(),
                 valid: true,
+                email,
+                email_verified,
+                is_new_user: false,
             })),
             Ok(None) => {
                 info!("Unrecognized OAuth identity. Provisioning new core user record.");
                 let user_id = self
                     .repo
-                    .create_oauth_user(&provider, &verified_subject_id)
+                    .create_oauth_user(&inner.provider, &verified_subject_id, email_verified)
                     .await
                     .map_err(|e| {
                         error!("Database fault during OAuth provisioning: {:?}", e);
                         Status::internal("Internal database fault")
                     })?;
 
-                Ok(Response::new(AuthResponse {
+                Ok(Response::new(OAuthLoginResponse {
                     user_id: user_id.to_string(),
                     valid: true,
+                    email,
+                    email_verified,
+                    is_new_user: true,
                 }))
             }
             Err(e) => {

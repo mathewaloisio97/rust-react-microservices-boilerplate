@@ -61,7 +61,7 @@ impl CryptoEngine {
         let payload_b64 = URL_SAFE_NO_PAD.encode(serialized.as_bytes());
         let signature_b64 = URL_SAFE_NO_PAD.encode(signature);
 
-        Ok(format!("{}.{}", payload_b64, signature_b64))
+        Ok(format!("{payload_b64}.{signature_b64}"))
     }
 
     /// Decodes, verifies, and unpacks a token.

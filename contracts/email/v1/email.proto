@@ -2,68 +2,89 @@ syntax = "proto3";
 
 package email.v1;
 
-/// Manages email affiliations, verification lifecycles, and ownership transfers for accounts.
+/// Manages email affiliations, verification lifecycles, and staged email updates for user accounts.
 service EmailService {
-  /// Retrieves the current and pending email states for a user.
+  /// Retrieves the current primary email state, verification status, and any pending unverified email change requests for a user.
   rpc GetEmail(GetEmailRequest) returns (GetEmailResponse);
-  
-  /// Initiates or updates an email change request, staging it for verification.
+
+  /// Initiates or updates an email change request, staging a new email address and dispatching a verification code.
   rpc SetEmail(SetEmailRequest) returns (SetEmailResponse);
-  
-  /// Validates a verification code to finalize an email update.
+
+  /// Bypasses the verification code flow to directly seed or provision a pre-verified primary email address (e.g., via trusted OAuth/OIDC providers).
+  rpc SetVerifiedEmail(SetVerifiedEmailRequest) returns (SetVerifiedEmailResponse);
+
+  /// Validates a short-lived verification code to finalize an email change or initial email confirmation.
   rpc VerifyEmail(VerifyEmailRequest) returns (VerifyEmailResponse);
 }
 
-/// Request details to fetch a user's email state.
+/// Request payload to retrieve the email state of a target user.
 message GetEmailRequest {
-  /// Unique identifier of the user account.
+  /// The unique identifier (UUID v4/v7) of the target user account.
   string user_id = 1;
 }
 
-/// Current and staged email data for the account.
+/// Current active email address and staged change details for a user account.
 message GetEmailResponse {
-  /// The actively verified email address currently receiving notifications.
+  /// The user's currently active primary email address.
   string current_email = 1;
-  
-  /// True if the current email address has completed ownership verification.
+
+  /// Indicates whether the user's current primary email address has been verified.
   bool is_verified = 2;
-  
-  /// A staged email address awaiting verification before replacing the current email.
+
+  /// The new unverified email address staged for change, if an update flow is in progress; empty string if no update is pending.
   string pending_new_email = 3;
-  
-  /// The strategy used to validate ownership (e.g., OnetimeCode, MagicLink).
+
+  /// The categorization of the pending verification lifecycle (e.g., "INITIAL_REGISTRATION", "ADDRESS_UPDATE", "RE_VERIFICATION").
   string verification_type = 4;
 }
 
-/// Request details to change or set a user's email.
+/// Request payload to initiate or update a user's primary email address.
 message SetEmailRequest {
-  /// Unique identifier of the user account.
+  /// The unique identifier (UUID v4/v7) of the target user requesting the email change.
   string user_id = 1;
-  
-  /// The new email address targeted for association.
+
+  /// The new target email address to stage for verification and future account attachment.
   string new_email = 2;
 }
 
-/// Result of initiating an email change.
+/// Response payload following an email change initiation.
 message SetEmailResponse {
-  /// Internal tracking state of the change request (e.g., PendingVerification, Throttled).
+  /// Operational outcome status string indicating the result of the request (e.g., "VERIFICATION_SENT", "NO_CHANGE_REQUIRED").
   string status = 1;
 }
 
-/// Submission details to complete verification.
-message VerifyEmailRequest {
-  /// Unique identifier of the user account.
+/// Request payload to directly seed a pre-verified primary email address for an account.
+message SetVerifiedEmailRequest {
+  /// The unique identifier (UUID v4/v7) of the target user account.
   string user_id = 1;
-  
-  /// The short-lived numeric or alphanumeric token sent to the pending email.
-  string code = 2;
+
+  /// The pre-verified email address extracted from a trusted identity provider to attach directly to the account.
+  string email = 2;
 }
 
-/// The outcome of the verification attempt.
-message VerifyEmailResponse {
-  /// True if the code matched and the verification process succeeded.
+/// Response payload following a direct verified email attachment request.
+message SetVerifiedEmailResponse {
+  /// Indicates whether the pre-verified email address was successfully attached to the user account.
   bool success = 1;
-  
-  /// If the verification finalized a multi-step email change, this contains the new active email.
+}
+
+/// Request payload submitting a verification code to complete an email verification flow.
+message VerifyEmailRequest {
+  /// The unique identifier (UUID v4/v7) of the user account completing verification.
+  string user_id = 1;
+
+  /// The short-lived numeric or alphanumeric secret code sent to the pending email inbox.
+  string code = 2;
+
+  /// The target email address undergoing verification. Required alongside the user ID and code to prevent cross-account code spraying attacks.
+  string email = 3;
+}
+
+/// Response payload following a verification attempt.
+message VerifyEmailResponse {
+  /// Indicates whether the verification code was valid and the email transition succeeded.
+  bool success = 1;
+
+  /// The newly active and verified primary email address attached to the account upon successful verification.
   string email_updated_to = 2;
 }

@@ -61,8 +61,7 @@ impl HumanVerificationService for VerificationGrpcServer {
             }
             _ => {
                 return Err(Status::invalid_argument(format!(
-                    "Unknown provider: {}",
-                    provider_id
+                    "Unknown provider: {provider_id}"
                 )))
             }
         };

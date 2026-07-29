@@ -28,17 +28,17 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.12.2'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '24.0.0'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 9
+          version: '9.15.4'
           run_install: false
 
       - name: Get pnpm store directory
@@ -73,8 +73,9 @@ jobs:
         uses: extractions/setup-just@v2
 
       - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: 1.97.0
           components: rustfmt, clippy
 
       - name: Rust Cache

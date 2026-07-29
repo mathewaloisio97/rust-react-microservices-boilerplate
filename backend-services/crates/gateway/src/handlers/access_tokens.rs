@@ -6,7 +6,7 @@
 use crate::{
     dtos::{GetPublicKeyResponse, IssueTokenPayload, IssueTokenResponse},
     error::handle_grpc_error,
-    middleware::{SessionToken, UserAccessLevel},
+    middleware::SessionToken,
     state::AppState,
 };
 use axum::{
@@ -20,6 +20,7 @@ use your_app_contracts::access_tokens::v1::{GetPublicKeyRequest, IssueTokenReque
 #[utoipa::path(
     post,
     path = "/api/v1/access-tokens",
+    tag = "Access Tokens",
     security(("bearer_auth" = [])),
     request_body = IssueTokenPayload,
     responses((status = 200, description = "JWT minted", body = IssueTokenResponse))
@@ -28,14 +29,12 @@ use your_app_contracts::access_tokens::v1::{GetPublicKeyRequest, IssueTokenReque
 pub async fn issue_token(
     State(mut state): State<AppState>,
     Extension(token): Extension<SessionToken>,
-    Extension(access_level): Extension<UserAccessLevel>,
     Json(payload): Json<IssueTokenPayload>,
 ) -> impl IntoResponse {
     let req = tonic::Request::new(IssueTokenRequest {
         session_token: token.0,
         roles: payload.roles,
         ttl_seconds: payload.ttl_seconds,
-        access_level: access_level.0,
     });
 
     // Forward the token issuance request to the underlying gRPC microservice.
@@ -58,6 +57,7 @@ pub async fn issue_token(
 #[utoipa::path(
     get,
     path = "/api/v1/access-tokens/key",
+    tag = "Access Tokens",
     responses((status = 200, description = "Public Key retrieved", body = GetPublicKeyResponse))
 )]
 #[tracing::instrument(skip(state))]

@@ -54,7 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Err(e) => {
                 retries -= 1;
                 if retries == 0 {
-                    panic!("Failed to connect to RabbitMQ AMQP: {}", e);
+                    panic!("Failed to connect to RabbitMQ AMQP: {e}");
                 }
                 warn!("Waiting for RabbitMQ to become available...");
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;

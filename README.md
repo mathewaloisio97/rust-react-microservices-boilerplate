@@ -1,14 +1,14 @@
-# Enterprise Rust Microservices & Auth Boilerplate
+# YourApp Online — Project Blueprint & System Architecture
 
-This repository provides a production-ready, distributed systems template consisting of a decoupled **Rust backend cluster** and a **TypeScript / React frontend**.
+This repository contains the source code for **YourApp**, a distributed learning management system (LMS) and certification management software consisting of a decoupled **Rust backend cluster** and **TypeScript / React frontends**.
 
-Designed as a foundational starter kit for SaaS, E-commerce, and Enterprise Web platforms, the project utilizes a centralized Protobuf pipeline to handle contract generation. This keeps the TypeScript clients and Rust backend microservices perfectly in sync to prevent API breaking changes.
+The project utilizes a centralized Protobuf pipeline to handle contract generation. This keeps the TypeScript clients and Rust backend microservices perfectly in sync to prevent API breaking changes.
 
 ---
 
 ## Key Technologies & Architecture
 
-This boilerplate is built on a high-performance, secure-by-default technology stack:
+The YourApp LMS is built on a high-performance, secure-by-default technology stack:
 
 * **Frontend:** React 19, TypeScript, Vite, and React Router.
 * **Backend:** Rust, Axum (HTTP Edge Gateway), and Tonic (Internal gRPC communication).
@@ -16,10 +16,10 @@ This boilerplate is built on a high-performance, secure-by-default technology st
 * **Databases & ORM:** PostgreSQL managed via SQLx (with offline compilation support).
 * **Message Broker:** RabbitMQ (AMQP) for decoupled, asynchronous domain events (e.g., welcome emails, session revocations).
 * **Authentication & Identity:**
-  * **Enterprise SSO:** Built-in OAuth integration (Google, Apple, Facebook) via OIDC cryptographic verification and Graph API introspection.
+  * **Enterprise SSO:** Built-in OAuth 2.0 / OIDC integration (Google, Apple) enforcing mandatory OIDC email claim extraction and provider state synchronization.
   * **Local Credentials:** Traditional email/password fallback utilizing Argon2id hashing.
   * **Session Management:** Opaque stateful session tokens exchanged for stateless, short-lived JSON Web Tokens (JWTs) via RS256 asymmetric signing.
-  * **Hierarchical RBAC:** Fine-grained Role-Based Access Control utilizing structured `AccessLevel` claims mapped straight into the stateless JWT payload context to secure downstream microservice RPC layers.
+  * **SSO Email Immutability:** Enterprise SSO accounts are strictly bound to their identity provider's verified email. Manual email modifications (`/api/v1/email`) are restricted exclusively to local credentials accounts at the Gateway layer to prevent state desynchronization and account takeover.
   * **Identity Lifecycle Automation:** A robust `UserStatus` state machine managing container accounts seamlessly through strict states (`PENDING`, `ACTIVE`, `SUSPENDED`).
 * **Bot Protection:** Seamless human verification integrated at the edge, supporting both **Cloudflare Turnstile** and **Google reCAPTCHA (v2/v3/Enterprise)**.
 * **Local Development Tools:** Mailpit (local SMTP sink for intercepting verification emails) and a custom Node.js multiplexer for concurrent cluster booting.
@@ -29,13 +29,13 @@ This boilerplate is built on a high-performance, secure-by-default technology st
 ## Repository Architecture
 
 ```text
-project-root/
+your_app-project/
 ├── .github/workflows/      # CI/CD pipelines enforcing offline validation and testing
 ├── backend-services/       # Rust microservice workspace (Identity, Gateway, Auth, etc.)
 ├── contracts/              # Central source of truth for all network schemas (.proto)
 ├── docker/                 # Infrastructure provisioning scripts (e.g., Postgres initialization)
 ├── scripts/                # Utility scripts (e.g., local development cluster multiplexer)
-├── website/                # React Frontend for the web portal
+├── website/                # React Frontend for the YourApp LMS portal
 ├── .editorconfig           # Enforces unified cross-platform formatting rules
 ├── .env.example            # Master runtime configuration template
 ├── docker-compose.yml      # Local development infrastructure definition
@@ -48,7 +48,7 @@ project-root/
 To guarantee parity between local development machines and GitHub Actions / GitLab CI, the Rust backend enforces **SQLx Offline Mode** via `.cargo/config.toml`. Running a standard compilation (`cargo check` or `cargo build`) requires zero running infrastructure. Database schemas are validated against committed `.sqlx` cache directories, ensuring rapid, deterministic builds.
 
 ### Passwordless Local Development
-The local PostgreSQL infrastructure utilizes `POSTGRES_HOST_AUTH_METHOD=trust`. This explicitly bypasses password authentication for localized Docker connections. This architectural decision permanently eliminates dummy credentials (e.g., `dev_db_pass`) from the repository's `.env` and `docker-compose.yml` files, preventing false-positive alerts from automated enterprise secret scanners.
+The local PostgreSQL infrastructure utilizes `POSTGRES_HOST_AUTH_METHOD=trust`. This explicitly bypasses password authentication for localized Docker connections. This architectural decision permanently eliminates dummy credentials (e.g., `your_app_dev_pass`) from the repository's `.env` and `docker-compose.yml` files, preventing false-positive alerts from automated enterprise secret scanners.
 
 ### Secure-by-Default Configuration
 To prevent the accidental deployment of unsecure development keys into production environments, the cryptographic engine enforces a strict fail-safe mechanism. The default execution path actively monitors for fallback development secrets at boot. If detected, the application will intentionally panic and crash. To utilize localized fallback keys (and official Turnstile/reCAPTCHA dummy testing keys), developers must explicitly authorize the execution by compiling with the `local-dev` feature flag, guaranteeing that production releases remain secure by design.
@@ -122,9 +122,9 @@ We utilize a custom Node.js multiplexer to boot the entire microservice cluster,
 
 **1. Boot the Entire Development Cluster:**
 ```bash
-just dev
+just dev --build
 ```
-*This automatically starts Postgres, RabbitMQ, and Mailpit, applies any pending database migrations, boots all 5 Rust microservices, and starts the Vite React development server.*
+*This automatically starts Postgres, RabbitMQ, and Mailpit, applies any pending database migrations, boots all 5 Rust microservices, and starts the Vite React development server. The '--build' flag is used to rebuild the services, to simply relaunch the flag can be omitted for faster launch.*
 
 **2. Reset the Environment (Optional):**
 If you need to wipe your local database data or clear corrupted message queues, completely destroy the docker volumes:
@@ -145,7 +145,7 @@ just db-clean
 ## Project & Contact Information
 
 * **Author:** Mathew Aloisio
-* **Project Purpose:** A general-purpose, enterprise-grade identity and authentication foundation. Features include enterprise OAuth single sign-on, frictionless human verification, automated email pipelines, and secure JWT token issuance. Architecturally, the project demonstrates cross-runtime decoupling between a Rust backend and TypeScript React clients using automated gRPC/Protobuf contract workflows.
+* **Project Purpose:** A core identity, authentication, and instructional platform tailored for a Learning Management System (LMS). Features include enterprise OAuth single sign-on with strict provider email synchronization, frictionless human verification, automated email pipelines, and secure JWT token issuance. Architecturally, the project demonstrates cross-runtime decoupling between a Rust backend and TypeScript React clients using automated gRPC/Protobuf contract workflows.
 
 ### Links
 * **Portfolio:** [mathewaloisio.com](https://mathewaloisio.com)

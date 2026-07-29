@@ -57,7 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Err(e) => {
                 retries -= 1;
                 if retries == 0 {
-                    panic!("RabbitMQ Connection Failed: {}", e);
+                    panic!("RabbitMQ Connection Failed: {e}");
                 }
                 warn!("Waiting for RabbitMQ instance to become healthy...");
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;

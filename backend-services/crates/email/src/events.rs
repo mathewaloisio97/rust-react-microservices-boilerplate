@@ -8,6 +8,9 @@ pub struct EmailDispatchEvent {
     /// Recipient email address.
     pub target_email: String,
 
+    /// The associated unique user ID necessary for verification callbacks.
+    pub user_id: String,
+
     /// Random confirmation code sequence generated for the user challenge.
     pub verification_code: String,
 

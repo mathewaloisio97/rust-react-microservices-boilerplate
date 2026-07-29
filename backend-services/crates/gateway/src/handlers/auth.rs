@@ -21,6 +21,7 @@ use your_app_contracts::auth::v1::RevokeTokenRequest;
 #[utoipa::path(
     post,
     path = "/api/v1/logout",
+    tag = "Identity & Auth",
     security(("bearer_auth" = [])),
     responses(
         (status = 200, description = "Successfully logged out"),

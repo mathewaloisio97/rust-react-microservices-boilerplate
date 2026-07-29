@@ -100,7 +100,6 @@ impl AccessTokensService for YourAppAccessTokens {
             iat: now.unix_timestamp() as usize,
             exp: exp.unix_timestamp() as usize,
             roles: inner.roles,
-            access_level: inner.access_level,
         };
 
         let access_token = self.jwt_manager.issue(&claims).map_err(|e| {

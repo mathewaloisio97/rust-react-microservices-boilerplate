@@ -34,9 +34,6 @@ pub struct Claims {
 
     /// List of assigned permission roles or scopes.
     pub roles: Vec<String>,
-
-    /// The administrative access level granted to the user.
-    pub access_level: String,
 }
 
 /// Cryptographic manager responsible for loading RSA keys and issuing signed JWTs.
@@ -47,9 +44,6 @@ pub struct JwtManager {
 
 impl JwtManager {
     /// Instantiates a new `JwtManager`, loading a PKCS#8 PEM string or generating an ephemeral 2048-bit keypair.
-    ///
-    /// In `local-dev` environments, if no key is provided, it generates and caches
-    /// a persistent RSA keypair locally to ensure JWTs survive backend restarts.
     pub fn new(private_pem_opt: Option<String>) -> Self {
         #[allow(unused_mut)]
         let mut final_pem = private_pem_opt;
@@ -77,7 +71,6 @@ impl JwtManager {
         if let Some(pem) = final_pem {
             info!("JWT: Initializing with configured RSA Private Key.");
 
-            // Parse the PKCS#8 PEM to mathematically derive the Public Key for exportation.
             let priv_key = RsaPrivateKey::from_pkcs8_pem(&pem)
                 .expect("FATAL: Failed to parse the provided RSA Private Key PEM");
             let pub_key = RsaPublicKey::from(&priv_key);
@@ -90,7 +83,6 @@ impl JwtManager {
                 public_key_pem,
             }
         } else {
-            // Failsafe for production if the environment variable is missing.
             tracing::error!(
                 "FATAL: No Private Key configured! Generating ephemeral 2048-bit RSA keypair."
             );

@@ -3,7 +3,7 @@
   # Infrastructure
   # ============================================================================
   postgres:
-    image: postgres:17-alpine
+    image: postgres:17.4-alpine
     container_name: your_app-postgres
     restart: unless-stopped
     environment:
@@ -21,7 +21,7 @@
       retries: 5
 
   rabbitmq:
-    image: rabbitmq:4-management-alpine
+    image: rabbitmq:4.0-management-alpine
     container_name: your_app-rabbitmq
     restart: unless-stopped
     ports:
@@ -39,7 +39,7 @@
       retries: 5
 
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:v1.22
     container_name: your_app-mailpit
     restart: unless-stopped
     ports:
@@ -49,7 +49,7 @@
       - "1025"
 
   jaeger:
-    image: jaegertracing/all-in-one:latest
+    image: jaegertracing/all-in-one:1.60
     container_name: your_app-jaeger
     restart: unless-stopped
     environment:

@@ -18,8 +18,8 @@ use tracing::{error, info, instrument};
 use uuid::Uuid;
 use your_app_contracts::email::v1::email_service_server::EmailService;
 use your_app_contracts::email::v1::{
-    GetEmailRequest, GetEmailResponse, SetEmailRequest, SetEmailResponse, VerifyEmailRequest,
-    VerifyEmailResponse,
+    GetEmailRequest, GetEmailResponse, SetEmailRequest, SetEmailResponse, SetVerifiedEmailRequest,
+    SetVerifiedEmailResponse, VerifyEmailRequest, VerifyEmailResponse,
 };
 
 /// Implements the gRPC service for managing user email state and confirmation lifecycles.
@@ -29,12 +29,10 @@ pub struct YourAppEmail {
 }
 
 impl YourAppEmail {
-    /// Creates a new service instance wrapped with its storage and messaging infrastructure dependencies.
     pub fn new(repo: Arc<dyn EmailRepository>, broker: Arc<AmqpBroker>) -> Self {
         Self { repo, broker }
     }
 
-    /// Generates a cryptographically random, 6-digit numeric string for verification challenges.
     fn generate_code() -> String {
         format!("{:06}", rand::random_range(100000..=999999))
     }
@@ -104,6 +102,7 @@ impl EmailService for YourAppEmail {
                     .broker
                     .publish_dispatch(&EmailDispatchEvent {
                         target_email: r.current_email,
+                        user_id: user_id.to_string(),
                         verification_code: code,
                         verification_type: "CONFIRM_OLD".into(),
                     })
@@ -127,6 +126,7 @@ impl EmailService for YourAppEmail {
             .broker
             .publish_dispatch(&EmailDispatchEvent {
                 target_email: inner.new_email,
+                user_id: user_id.to_string(),
                 verification_code: code,
                 verification_type: "VERIFY_CURRENT".into(),
             })
@@ -135,6 +135,26 @@ impl EmailService for YourAppEmail {
         Ok(Response::new(SetEmailResponse {
             status: "UNVERIFIED".into(),
         }))
+    }
+
+    #[instrument(skip(self))]
+    async fn set_verified_email(
+        &self,
+        req: Request<SetVerifiedEmailRequest>,
+    ) -> Result<Response<SetVerifiedEmailResponse>, Status> {
+        let inner = req.into_inner();
+        let user_id = Uuid::parse_str(&inner.user_id)
+            .map_err(|_| Status::invalid_argument("Malformed UUID"))?;
+
+        self.repo
+            .set_verified_email(user_id, &inner.email)
+            .await
+            .map_err(|e| {
+                error!("Database fault: {:?}", e);
+                Status::internal("DB Error")
+            })?;
+
+        Ok(Response::new(SetVerifiedEmailResponse { success: true }))
     }
 
     #[instrument(skip(self))]
@@ -161,7 +181,15 @@ impl EmailService for YourAppEmail {
             .map(|e| e < OffsetDateTime::now_utc())
             .unwrap_or(true);
 
-        if expired || record.verification_code.as_deref() != Some(inner.code.as_str()) {
+        // Anti-Squatter evaluation: strictly ensure the requested email matches the pending or current target
+        // to prevent token spraying cross-contamination.
+        let is_valid_email = record.current_email == inner.email
+            || record.pending_new_email.as_deref() == Some(inner.email.as_str());
+
+        if expired
+            || record.verification_code.as_deref() != Some(inner.code.as_str())
+            || !is_valid_email
+        {
             return Ok(Response::new(VerifyEmailResponse {
                 success: false,
                 email_updated_to: "".to_string(),
@@ -190,10 +218,12 @@ impl EmailService for YourAppEmail {
                         Status::internal("DB Error")
                     })?;
 
+                let new_target = record.pending_new_email.clone().unwrap_or_default();
                 let _ = self
                     .broker
                     .publish_dispatch(&EmailDispatchEvent {
-                        target_email: record.pending_new_email.unwrap_or_default(),
+                        target_email: new_target,
+                        user_id: user_id.to_string(),
                         verification_code: code,
                         verification_type: "VERIFY_NEW".into(),
                     })

@@ -10,11 +10,6 @@ use lettre::transport::smtp::authentication::Credentials;
 use lettre::{AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
 use tracing::{error, info, warn};
 
-/// Starts an asynchronous loop that consumes from the email dispatch queue and sends SMTP messages.
-///
-/// Dynamically configures credentials if provided (production SMTP), or runs unauthenticated
-/// plain-text mode when credentials are omitted (local dev with Mailpit/MailHog).
-/// Automatically reconnects to AMQP if the network connection or consumer stream drops.
 pub async fn start_email_worker(
     amqp_url: String,
     smtp_host: String,
@@ -48,9 +43,6 @@ pub async fn start_email_worker(
                 Err(_) => continue,
             };
 
-            // Construct the SMTP transport.
-            // `builder_dangerous` defaults to no TLS and no auth, perfectly suited for local dev (Mailpit).
-            // When username and password are provided in production, we attach credentials.
             let mut builder =
                 AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(smtp_host.clone())
                     .port(smtp_port);
@@ -79,10 +71,14 @@ pub async fn start_email_worker(
                                 let email_res = Message::builder()
                                     .from(from_addr)
                                     .to(to_addr)
-                                    .subject("YourApp - Your Verification Code")
+                                    .subject("YourApp - Complete Your Verification")
                                     .body(format!(
-                                        "Your verification code is: {}\n\nType: {}",
-                                        event.verification_code, event.verification_type
+                                        "Click the secure link below to verify your email address:\nhttp://localhost:5173/verify?email={}&user_id={}&code={}\n\nType: {}\nUser ID: {}",
+                                        urlencoding::encode(&event.target_email),
+                                        urlencoding::encode(&event.user_id),
+                                        urlencoding::encode(&event.verification_code),
+                                        event.verification_type,
+                                        event.user_id
                                     ));
 
                                 if let Ok(email) = email_res {
@@ -107,7 +103,6 @@ pub async fn start_email_worker(
                                         }
                                     }
                                 } else {
-                                    // Reject malformed email payloads without re-queuing.
                                     delivery
                                         .reject(BasicRejectOptions { requeue: false })
                                         .await
@@ -122,7 +117,6 @@ pub async fn start_email_worker(
                             }
                         }
                     } else {
-                        // Reject unparseable event payloads without re-queuing.
                         delivery
                             .reject(BasicRejectOptions { requeue: false })
                             .await

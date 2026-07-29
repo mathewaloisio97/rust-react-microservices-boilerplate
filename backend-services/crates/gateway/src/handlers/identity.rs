@@ -12,7 +12,7 @@ use crate::{error::handle_grpc_error, state::AppState};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use serde_json::json;
 use your_app_contracts::auth::v1::CreateTokenRequest;
-use your_app_contracts::email::v1::SetEmailRequest;
+use your_app_contracts::email::v1::{SetEmailRequest, SetVerifiedEmailRequest};
 use your_app_contracts::identity::v1::{
     LoginLocalRequest, OAuthLoginRequest, RegisterLocalRequest,
 };
@@ -36,6 +36,7 @@ use your_app_contracts::identity::v1::{
 #[utoipa::path(
     post,
     path = "/api/v1/register",
+    tag = "Identity & Auth",
     request_body = LocalRegisterPayload,
     params(
         ("x-captcha-voucher" = String, Header, description = "Cryptographic proof-of-humanity voucher")
@@ -103,6 +104,7 @@ pub async fn local_register(
 #[utoipa::path(
     post,
     path = "/api/v1/login",
+    tag = "Identity & Auth",
     request_body = LocalLoginPayload,
     params(
         ("x-captcha-voucher" = String, Header, description = "Cryptographic proof-of-humanity voucher")
@@ -161,15 +163,16 @@ pub async fn local_login(
     }
 }
 
-/// Authenticates or provisions a user via an external OAuth provider (e.g., Google, Microsoft).
+/// Authenticates or provisions a user via an external OAuth provider (e.g., Google, Apple).
 ///
-/// Validates the external identity token via the Identity service, and upon success,
-/// issues an active session token via the Auth microservice. This endpoint requires
-/// an active proof-of-humanity header (`x-captcha-voucher`) evaluated by upstream middleware.
+/// Validates the external identity token via the Identity service, syncs verified email
+/// state in the Email service on every authentication event to maintain provider alignment,
+/// and issues an active session token via the Auth microservice. This endpoint requires an
+/// active proof-of-humanity header (`x-captcha-voucher`) evaluated by upstream middleware.
 ///
 /// # Arguments
 ///
-/// * `state` - Shared application state container holding identity and auth service clients.
+/// * `state` - Shared application state container holding identity, email, and auth service clients.
 /// * `payload` - JSON body containing the external `provider` name and client `id_token`.
 ///
 /// # Returns
@@ -179,6 +182,7 @@ pub async fn local_login(
 #[utoipa::path(
     post,
     path = "/api/v1/oauth",
+    tag = "Identity & Auth",
     request_body = OAuthLoginPayload,
     params(
         ("x-captcha-voucher" = String, Header, description = "Cryptographic proof-of-humanity voucher")
@@ -219,6 +223,30 @@ pub async fn oauth_login(
             Json(json!({ "error": "Invalid OAuth identity" })),
         )
             .into_response();
+    }
+
+    // ALWAYS sync the Email Microservice on OAuth login to keep it bound to the identity provider.
+    if res.email_verified {
+        let email_req = tonic::Request::new(SetVerifiedEmailRequest {
+            user_id: res.user_id.clone(),
+            email: res.email.clone(),
+        });
+        if let Err(e) = state.email_client.set_verified_email(email_req).await {
+            tracing::error!("Failed to sync verified OAuth email: {:?}", e);
+        }
+    } else if res.is_new_user {
+        // Fallback: If the OIDC provider asserts the email is unverified upon registration,
+        // push them into the standard verification challenge flow.
+        let email_req = tonic::Request::new(SetEmailRequest {
+            user_id: res.user_id.clone(),
+            new_email: res.email.clone(),
+        });
+        if let Err(e) = state.email_client.set_email(email_req).await {
+            tracing::error!(
+                "Failed to dispatch initial verification email for OAuth: {:?}",
+                e
+            );
+        }
     }
 
     let auth_req = tonic::Request::new(CreateTokenRequest {

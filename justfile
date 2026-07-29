@@ -25,9 +25,9 @@ check-contracts:
 # Format, lint, and build the Rust backend.
 check-rust mode="prod":
     cd backend-services && cargo fmt -- --check
-    cd backend-services && cargo clippy --all-targets --all-features -- -D warnings
+    cd backend-services && cargo clippy --all-targets --all-features -- -D warnings -D clippy::uninlined_format_args
     cd backend-services && cargo build --release {{ if mode == "local-dev" { "--features local-dev" } else { "" } }}
-
+    
 # Install dependencies and build the React portal.
 check-frontend:
     cd website && pnpm install --frozen-lockfile
@@ -61,7 +61,7 @@ db-down:
     docker compose stop postgres rabbitmq mailpit jaeger
 
 # Updates the .sqlx offline caches for all microservices, then stops the DB.
-db-prepare: db-up
+db-prepare: db-up check-contracts
     @echo Preparing offline cache for Identity...
     cd backend-services/crates/identity && cargo sqlx prepare --database-url {{ IDENTITY_DB_URL }}
     @echo Preparing offline cache for Auth...

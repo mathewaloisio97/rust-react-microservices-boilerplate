@@ -192,10 +192,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .map(|s| {
                 let clean_str = s.trim();
                 clean_str.parse::<HeaderValue>().unwrap_or_else(|_| {
-                    panic!(
-                        "FATAL: Invalid origin format in ALLOWED_CORS_ORIGINS: {}",
-                        clean_str
-                    )
+                    panic!("FATAL: Invalid origin format in ALLOWED_CORS_ORIGINS: {clean_str}")
                 })
             })
             .collect();

@@ -4,7 +4,7 @@
 //! core identities, local credentials, and OAuth mappings.
 
 use crate::errors::IdentityError;
-use crate::models::{AccessLevel, LocalCredential, OAuthLink, User, UserStatus};
+use crate::models::{LocalCredential, OAuthLink, User, UserStatus};
 use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -36,10 +36,12 @@ pub trait UserRepository: Send + Sync {
         -> Result<(), IdentityError>;
 
     /// Provisions a new core user and their associated OAuth mapping.
+    /// Sets user status to ACTIVE if email_verified is true, or PENDING if false.
     async fn create_oauth_user(
         &self,
         provider: &str,
         subject_id: &str,
+        email_verified: bool,
     ) -> Result<Uuid, IdentityError>;
 
     /// Retrieves an OAuth link mapping to identify an existing user.
@@ -97,9 +99,15 @@ macro_rules! with_retry {
 impl UserRepository for PostgresUserRepository {
     #[tracing::instrument(skip(self))]
     async fn get_user(&self, user_id: Uuid) -> Result<Option<User>, IdentityError> {
+        // Evaluate credential provider dynamically: 'local', specific OAuth provider ('google', 'apple'), or 'sso'.
         let record = with_retry!(sqlx::query_as!(
             User,
-            r#"SELECT id, access_level as "access_level: AccessLevel", status as "status: UserStatus", created_at as "created_at: _" FROM users WHERE id = $1"#,
+            r#"SELECT u.id, u.status as "status: UserStatus", u.created_at as "created_at: _", 
+                      CASE 
+                          WHEN EXISTS(SELECT 1 FROM local_credentials lc WHERE lc.user_id = u.id) THEN 'local'
+                          ELSE COALESCE((SELECT provider FROM oauth_links ol WHERE ol.user_id = u.id LIMIT 1), 'sso')
+                      END as "credential_provider!"
+               FROM users u WHERE u.id = $1"#,
             user_id
         )
         .fetch_optional(&self.pool))
@@ -114,8 +122,35 @@ impl UserRepository for PostgresUserRepository {
         email: &str,
         password_hash: &str,
     ) -> Result<Uuid, IdentityError> {
-        let new_user_id = Uuid::now_v7();
+        // Squatter Prevention Strategy:
+        // Check if the target email already exists.
+        let existing = with_retry!(sqlx::query!(
+            r#"SELECT u.id, u.status as "status: UserStatus" FROM local_credentials lc JOIN users u ON u.id = lc.user_id WHERE lc.email = $1"#,
+            email
+        ).fetch_optional(&self.pool)).map_err(IdentityError::Database)?;
 
+        if let Some(row) = existing {
+            if row.status == UserStatus::Pending {
+                // The account was registered but never verified. Silently overwrite the password
+                // hash so the legitimate owner of the inbox can successfully register and verify it.
+                with_retry!(sqlx::query!(
+                    "UPDATE local_credentials SET password_hash = $1 WHERE email = $2",
+                    password_hash,
+                    email
+                )
+                .execute(&self.pool))
+                .map_err(IdentityError::Database)?;
+
+                return Ok(row.id);
+            } else {
+                // The account is ACTIVE or SUSPENDED. Return the existing ID to trick the gateway
+                // into a uniform success response to prevent email enumeration attacks, but DO NOT
+                // overwrite the legitimate user's password.
+                return Ok(row.id);
+            }
+        }
+
+        let new_user_id = Uuid::now_v7();
         let mut tx = self.pool.begin().await.map_err(IdentityError::Database)?;
 
         // Local credentials start as PENDING until initial email validation.
@@ -127,30 +162,19 @@ impl UserRepository for PostgresUserRepository {
         .await
         .map_err(IdentityError::Database)?;
 
-        let result = sqlx::query!(
+        sqlx::query!(
             "INSERT INTO local_credentials (user_id, email, password_hash) VALUES ($1, $2, $3)",
             new_user_id,
             email,
             password_hash
         )
         .execute(&mut *tx)
-        .await;
+        .await
+        .map_err(IdentityError::Database)?;
 
-        match result {
-            Ok(_) => {
-                tx.commit().await.map_err(IdentityError::Database)?;
-                Ok(new_user_id)
-            }
-            Err(e) => {
-                tx.rollback().await.ok();
-                if let Some(db_err) = e.as_database_error() {
-                    if db_err.code().as_deref() == Some("23505") {
-                        return Err(IdentityError::EmailAlreadyExists(email.to_string()));
-                    }
-                }
-                Err(IdentityError::Database(e))
-            }
-        }
+        tx.commit().await.map_err(IdentityError::Database)?;
+
+        Ok(new_user_id)
     }
 
     #[tracing::instrument(skip(self))]
@@ -209,19 +233,28 @@ impl UserRepository for PostgresUserRepository {
         &self,
         provider: &str,
         subject_id: &str,
+        email_verified: bool,
     ) -> Result<Uuid, IdentityError> {
         let new_user_id = Uuid::now_v7();
-
         let mut tx = self.pool.begin().await.map_err(IdentityError::Database)?;
 
-        // OAuth accounts start as ACTIVE because the identity provider inherently verified them.
-        sqlx::query!(
-            "INSERT INTO users (id, status) VALUES ($1, 'ACTIVE')",
-            new_user_id
-        )
-        .execute(&mut *tx)
-        .await
-        .map_err(IdentityError::Database)?;
+        if email_verified {
+            sqlx::query!(
+                "INSERT INTO users (id, status) VALUES ($1, 'ACTIVE')",
+                new_user_id
+            )
+            .execute(&mut *tx)
+            .await
+            .map_err(IdentityError::Database)?;
+        } else {
+            sqlx::query!(
+                "INSERT INTO users (id, status) VALUES ($1, 'PENDING')",
+                new_user_id
+            )
+            .execute(&mut *tx)
+            .await
+            .map_err(IdentityError::Database)?;
+        }
 
         sqlx::query!(
             "INSERT INTO oauth_links (user_id, provider, provider_subject_id) VALUES ($1, $2, $3)",
@@ -247,7 +280,8 @@ impl UserRepository for PostgresUserRepository {
         let record = with_retry!(sqlx::query_as!(
             OAuthLink,
             r#"SELECT user_id, provider, provider_subject_id, created_at as "created_at: _" FROM oauth_links WHERE provider = $1 AND provider_subject_id = $2"#,
-            provider, subject_id
+            provider,
+            subject_id
         )
         .fetch_optional(&self.pool))
         .map_err(IdentityError::Database)?;

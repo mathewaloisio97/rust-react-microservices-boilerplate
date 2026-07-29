@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO user_emails (user_id, current_email, is_verified)\n            VALUES ($1, $2, TRUE)\n            ON CONFLICT (user_id) DO UPDATE SET\n                current_email = EXCLUDED.current_email,\n                is_verified = TRUE,\n                verification_type = NULL,\n                verification_code = NULL,\n                code_expires_at = NULL,\n                pending_new_email = NULL,\n                updated_at = NOW()\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "043d74a47242a0740b2d923170037544a206fc27883919337b364e841fc0b536"
+}

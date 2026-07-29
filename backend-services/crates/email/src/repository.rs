@@ -25,6 +25,9 @@ pub trait EmailRepository: Send + Sync {
         expires: OffsetDateTime,
     ) -> Result<(), EmailError>;
 
+    /// Directly inserts or overwrites a verified primary email address (e.g. for trusted OAuth/OIDC users).
+    async fn set_verified_email(&self, user_id: Uuid, email: &str) -> Result<(), EmailError>;
+
     /// Sets a staged email address change and its corresponding lifecycle code.
     async fn set_pending_change(
         &self,
@@ -123,6 +126,27 @@ impl EmailRepository for PostgresEmailRepository {
             "#,
             user_id, email, code, expires
         ).execute(&self.pool))?;
+        Ok(())
+    }
+
+    async fn set_verified_email(&self, user_id: Uuid, email: &str) -> Result<(), EmailError> {
+        with_retry!(sqlx::query!(
+            r#"
+            INSERT INTO user_emails (user_id, current_email, is_verified)
+            VALUES ($1, $2, TRUE)
+            ON CONFLICT (user_id) DO UPDATE SET
+                current_email = EXCLUDED.current_email,
+                is_verified = TRUE,
+                verification_type = NULL,
+                verification_code = NULL,
+                code_expires_at = NULL,
+                pending_new_email = NULL,
+                updated_at = NOW()
+            "#,
+            user_id,
+            email
+        )
+        .execute(&self.pool))?;
         Ok(())
     }
 

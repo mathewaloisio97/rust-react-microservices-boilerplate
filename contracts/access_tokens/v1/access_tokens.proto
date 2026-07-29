@@ -16,6 +16,7 @@ service AccessTokensService {
   rpc GetPublicKey(GetPublicKeyRequest) returns (GetPublicKeyResponse);
 }
 
+/// Request payload to exchange an active session token for a short-lived JWT.
 message IssueTokenRequest {
   /// Opaque stateful session token used as the primary credential.
   string session_token = 1;
@@ -25,11 +26,9 @@ message IssueTokenRequest {
 
   /// Requested token lifetime in seconds, bounded by server maximum policy.
   uint32 ttl_seconds = 3;
-
-  /// The user's administrative tier injected by the edge gateway.
-  string access_level = 4;
 }
 
+/// Response payload containing the signed access JWT and its timestamp ceiling.
 message IssueTokenResponse {
   /// Signed JWT access token containing embedded claims and roles.
   string access_token = 1;
@@ -38,8 +37,10 @@ message IssueTokenResponse {
   uint64 expires_at = 2;
 }
 
+/// Request payload to fetch the active verification key. Contains no input fields.
 message GetPublicKeyRequest {}
 
+/// Response payload containing the public key for verifying issued JWTs.
 message GetPublicKeyResponse {
   /// Public key in PEM format used for asymmetric signature verification.
   string public_key_pem = 1;

@@ -6,7 +6,7 @@ package identity.v1;
 /// verification, and traditional email/password fallback.
 service IdentityService {
   /// Authenticates a user via an external OAuth provider (creating them if new).
-  rpc OAuthLogin(OAuthLoginRequest) returns (AuthResponse);
+  rpc OAuthLogin(OAuthLoginRequest) returns (OAuthLoginResponse);
 
   /// Provisions a new user using a traditional email and password.
   rpc RegisterLocal(RegisterLocalRequest) returns (AuthResponse);
@@ -17,78 +17,123 @@ service IdentityService {
   /// Updates the email address associated with local credentials.
   rpc UpdateLocalEmail(UpdateLocalEmailRequest) returns (UpdateLocalEmailResponse);
 
-  /// Retrieves a user's core identity profile, status, and access level.
+  /// Retrieves a user's core identity profile and status.
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
 
   /// Transitions a user from PENDING to ACTIVE.
   rpc ActivateUser(ActivateUserRequest) returns (ActivateUserResponse);
 }
 
-/// Represents the authorization boundary and administrative privileges of a user.
-enum AccessLevel {
-  ACCESS_LEVEL_DEFAULT = 0;
-  ACCESS_LEVEL_STAFF = 1;
-  ACCESS_LEVEL_ADMIN = 2;
-  ACCESS_LEVEL_SUPER_ADMIN = 3;
-  ACCESS_LEVEL_SYSTEM = 4;
-}
-
 /// Represents the operational state and accessibility of the user's account.
 enum UserStatus {
   /// Account created but pending initial verification (e.g., email confirmation).
   USER_STATUS_PENDING = 0;
-  
+
   /// Normal operating status.
   USER_STATUS_ACTIVE = 1;
-  
+
   /// Explicitly blocked from accessing gateway-protected endpoints.
   USER_STATUS_SUSPENDED = 2;
 }
 
+/// Request payload for authenticating via an external OAuth provider.
 message OAuthLoginRequest {
+  /// The identity provider name (e.g., "google", "github").
   string provider = 1;
+
+  /// The raw identity or access token issued by the external provider.
   string id_token = 2;
 }
 
-message RegisterLocalRequest {
-  string email = 1;
-  string password = 2;
-}
-
-message LoginLocalRequest {
-  string email = 1;
-  string password = 2;
-}
-
-message AuthResponse {
+/// Response payload following a successful or evaluated external OAuth authentication attempt.
+message OAuthLoginResponse {
+  /// The internal unique identifier (UUID v7) assigned to the authenticated user identity.
   string user_id = 1;
+
+  /// Indicates whether the provided id_token was successfully validated by the provider gateway.
+  bool valid = 2;
+
+  /// The primary email address extracted directly from the external provider's ID token claims.
+  string email = 3;
+
+  /// Indicates whether the external provider marked the email address as verified (e.g., OIDC `email_verified` claim).
+  bool email_verified = 4;
+
+  /// True if a new account was provisioned during this authentication request; false if logging into an existing account.
+  bool is_new_user = 5;
+}
+
+/// Request payload for registering a new user with local email and password credentials.
+message RegisterLocalRequest {
+  /// The user's primary email address.
+  string email = 1;
+
+  /// The raw password string submitted during account creation.
+  string password = 2;
+}
+
+/// Request payload for authenticating via local email and password.
+message LoginLocalRequest {
+  /// The registered email address of the account.
+  string email = 1;
+
+  /// The raw password string submitted for authentication.
+  string password = 2;
+}
+
+/// Standard response payload returned by authentication operations.
+message AuthResponse {
+  /// The unique identifier (UUID) of the target user.
+  string user_id = 1;
+
+  /// Indicates whether the provided credentials or tokens were successfully validated.
   bool valid = 2;
 }
 
+/// Request payload for updating the email address bound to a local credential.
 message UpdateLocalEmailRequest {
+  /// The unique identifier (UUID) of the user making the update.
   string user_id = 1;
+
+  /// The new email address to assign to the account.
   string new_email = 2;
 }
 
+/// Response payload following an email update attempt.
 message UpdateLocalEmailResponse {
+  /// Indicates whether the email address was successfully updated in storage.
   bool success = 1;
 }
 
+/// Request payload for fetching user profile details.
 message GetUserRequest {
+  /// The unique identifier (UUID) of the target user.
   string user_id = 1;
 }
 
+/// Response payload containing core user profile details.
 message GetUserResponse {
+  /// The unique identifier (UUID) of the user.
   string user_id = 1;
-  AccessLevel access_level = 2;
-  UserStatus status = 3;
-  string created_at = 4;
+
+  /// The current lifecycle and accessibility state of the user account.
+  UserStatus status = 2;
+
+  /// RFC 3339 formatted UTC timestamp of when the user record was created.
+  string created_at = 3;
+
+  /// The primary identity provider used by this account ("local", "google", "apple").
+  string credential_provider = 4;
 }
 
+/// Request payload for activating a user account.
 message ActivateUserRequest {
+  /// The unique identifier (UUID) of the user to activate.
   string user_id = 1;
 }
 
+/// Response payload following an activation attempt.
 message ActivateUserResponse {
+  /// Indicates whether the user status was successfully transitioned to ACTIVE.
   bool success = 1;
 }
